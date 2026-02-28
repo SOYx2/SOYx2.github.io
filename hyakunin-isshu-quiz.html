@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>百人一首クイズ</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "MS Mincho", serif;
+      background: #1a0a0a;
+      color: #e8d5b7;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    header {
+      width: 100%;
+      text-align: center;
+      padding: 30px 20px 10px;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      color: #c8a45a;
+      letter-spacing: 0.3em;
+      margin-bottom: 6px;
+    }
+
+    header p {
+      font-size: 0.9rem;
+      color: #8a7a6a;
+    }
+
+    .score-bar {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      padding: 12px 20px;
+      font-size: 1rem;
+      color: #c8a45a;
+    }
+
+    .score-bar span {
+      letter-spacing: 0.1em;
+    }
+
+    #quiz-area {
+      width: 90%;
+      max-width: 600px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px 0 40px;
+    }
+
+    .kami-no-ku {
+      background: linear-gradient(135deg, #2a1a10, #1e1208);
+      border: 1px solid #c8a45a44;
+      border-radius: 12px;
+      padding: 30px 24px;
+      margin-bottom: 24px;
+      width: 100%;
+      text-align: center;
+      position: relative;
+    }
+
+    .kami-no-ku::before {
+      content: "上の句";
+      position: absolute;
+      top: -12px;
+      left: 20px;
+      background: #1a0a0a;
+      padding: 0 10px;
+      font-size: 0.8rem;
+      color: #c8a45a;
+    }
+
+    .kami-no-ku p {
+      font-size: 1.5rem;
+      line-height: 1.8;
+      letter-spacing: 0.15em;
+    }
+
+    .shimo-label {
+      font-size: 0.9rem;
+      color: #8a7a6a;
+      margin-bottom: 12px;
+      letter-spacing: 0.2em;
+    }
+
+    .choices {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .choice-btn {
+      background: #2a1a10;
+      border: 1px solid #c8a45a44;
+      border-radius: 8px;
+      padding: 16px 20px;
+      color: #e8d5b7;
+      font-family: inherit;
+      font-size: 1.1rem;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.2s, border-color 0.2s;
+      letter-spacing: 0.1em;
+      line-height: 1.6;
+    }
+
+    .choice-btn:hover {
+      background: #3a2a1a;
+      border-color: #c8a45a88;
+    }
+
+    .choice-btn:disabled {
+      cursor: default;
+    }
+
+    .choice-btn.correct {
+      background: #1a3a1a;
+      border-color: #4a8a4a;
+      color: #8fdf8f;
+    }
+
+    .choice-btn.wrong {
+      background: #3a1a1a;
+      border-color: #8a4a4a;
+      color: #df8f8f;
+    }
+
+    .result-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+
+    .result-overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .result-message {
+      font-size: 3rem;
+      font-weight: bold;
+      letter-spacing: 0.3em;
+      text-shadow: 0 0 30px currentColor;
+      animation: popIn 0.4s ease-out;
+    }
+
+    .result-message.correct {
+      color: #c8a45a;
+    }
+
+    .result-message.wrong {
+      color: #8a4a4a;
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0.5); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .poem-info {
+      width: 100%;
+      background: #2a1a10;
+      border: 1px solid #c8a45a44;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-top: 16px;
+      display: none;
+      line-height: 1.8;
+    }
+
+    .poem-info .author {
+      color: #c8a45a;
+      font-size: 0.9rem;
+      margin-bottom: 4px;
+    }
+
+    .poem-info .full-poem {
+      font-size: 1rem;
+      color: #e8d5b7;
+    }
+
+    .next-btn {
+      margin-top: 20px;
+      background: #c8a45a;
+      color: #1a0a0a;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 40px;
+      font-family: inherit;
+      font-size: 1.1rem;
+      cursor: pointer;
+      letter-spacing: 0.2em;
+      display: none;
+      transition: background 0.2s;
+    }
+
+    .next-btn:hover {
+      background: #d8b46a;
+    }
+
+    .progress {
+      font-size: 0.85rem;
+      color: #8a7a6a;
+      margin-bottom: 16px;
+    }
+
+    @media (max-width: 600px) {
+      header h1 { font-size: 1.5rem; }
+      .kami-no-ku p { font-size: 1.2rem; }
+      .choice-btn { font-size: 1rem; padding: 14px 16px; }
+      .result-message { font-size: 2.2rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>百人一首クイズ</h1>
+  <p>上の句から下の句を当てよう</p>
+</header>
+
+<div class="score-bar">
+  <span>正解: <strong id="correct-count">0</strong></span>
+  <span>不正解: <strong id="wrong-count">0</strong></span>
+</div>
+
+<div id="quiz-area">
+  <p class="progress" id="progress"></p>
+  <div class="kami-no-ku">
+    <p id="kami-no-ku-text"></p>
+  </div>
+  <p class="shimo-label">▼ 下の句を選んでください</p>
+  <div class="choices" id="choices"></div>
+  <div class="poem-info" id="poem-info">
+    <p class="author" id="poem-author"></p>
+    <p class="full-poem" id="poem-full"></p>
+  </div>
+  <button class="next-btn" id="next-btn">次の問題</button>
+</div>
+
+<div class="result-overlay" id="result-overlay">
+  <div class="result-message" id="result-message"></div>
+</div>
+
+<script>
+const poems = [
+  {kami:"秋の田の かりほの庵の 苫をあらみ", shimo:"わが衣手は 露にぬれつつ", author:"天智天皇"},
+  {kami:"春すぎて 夏来にけらし 白妙の", shimo:"衣ほすてふ 天の香具山", author:"持統天皇"},
+  {kami:"あしびきの 山鳥の尾の しだり尾の", shimo:"ながながし夜を ひとりかも寝む", author:"柿本人麻呂"},
+  {kami:"田子の浦に うち出でてみれば 白妙の", shimo:"富士の高嶺に 雪は降りつつ", author:"山部赤人"},
+  {kami:"奥山に 紅葉踏みわけ 鳴く鹿の", shimo:"声きく時ぞ 秋は悲しき", author:"猿丸大夫"},
+  {kami:"かささぎの 渡せる橋に おく霜の", shimo:"白きを見れば 夜ぞふけにける", author:"中納言家持"},
+  {kami:"天の原 ふりさけ見れば 春日なる", shimo:"三笠の山に 出でし月かも", author:"安倍仲麿"},
+  {kami:"わが庵は 都のたつみ しかぞすむ", shimo:"世をうぢ山と 人はいふなり", author:"喜撰法師"},
+  {kami:"花の色は うつりにけりな いたづらに", shimo:"わが身世にふる ながめせしまに", author:"小野小町"},
+  {kami:"これやこの 行くも帰るも 別れては", shimo:"知るも知らぬも 逢坂の関", author:"蝉丸"},
+  {kami:"わたの原 八十島かけて 漕ぎ出でぬと", shimo:"人には告げよ 海人の釣舟", author:"参議篁"},
+  {kami:"天つ風 雲の通ひ路 吹きとぢよ", shimo:"乙女の姿 しばしとどめむ", author:"僧正遍昭"},
+  {kami:"筑波嶺の 峰より落つる みなの川", shimo:"恋ぞつもりて 淵となりぬる", author:"陽成院"},
+  {kami:"陸奥の しのぶもぢずり 誰ゆゑに", shimo:"乱れそめにし われならなくに", author:"河原左大臣"},
+  {kami:"君がため 春の野に出でて 若菜つむ", shimo:"わが衣手に 雪は降りつつ", author:"光孝天皇"},
+  {kami:"立ち別れ いなばの山の 峰に生ふる", shimo:"まつとし聞かば 今帰り来む", author:"中納言行平"},
+  {kami:"ちはやぶる 神代もきかず 竜田川", shimo:"からくれなゐに 水くくるとは", author:"在原業平朝臣"},
+  {kami:"住の江の 岸による波 よるさへや", shimo:"夢の通ひ路 人目よくらむ", author:"藤原敏行朝臣"},
+  {kami:"難波潟 みじかき芦の ふしの間も", shimo:"逢はでこの世を 過ぐしてよとや", author:"伊勢"},
+  {kami:"わびぬれば 今はた同じ 難波なる", shimo:"みをつくしても 逢はむとぞ思ふ", author:"元良親王"},
+  {kami:"今来むと いひしばかりに 長月の", shimo:"有明の月を 待ち出でつるかな", author:"素性法師"},
+  {kami:"吹くからに 秋の草木の しをるれば", shimo:"むべ山風を 嵐といふらむ", author:"文屋康秀"},
+  {kami:"月見れば ちぢに物こそ 悲しけれ", shimo:"わが身ひとつの 秋にはあらねど", author:"大江千里"},
+  {kami:"このたびは ぬさもとりあへず 手向山", shimo:"紅葉の錦 神のまにまに", author:"菅家"},
+  {kami:"名にし負はば 逢坂山の さねかづら", shimo:"人に知られで くるよしもがな", author:"三条右大臣"},
+  {kami:"小倉山 峰のもみぢ葉 心あらば", shimo:"今ひとたびの みゆき待たなむ", author:"貞信公"},
+  {kami:"みかの原 わきて流るる いづみ川", shimo:"いつ見きとてか 恋しかるらむ", author:"中納言兼輔"},
+  {kami:"山里は 冬ぞさびしさ まさりける", shimo:"人目も草も かれぬと思へば", author:"源宗于朝臣"},
+  {kami:"心あてに 折らばや折らむ 初霜の", shimo:"おきまどはせる 白菊の花", author:"凡河内躬恒"},
+  {kami:"有明の つれなく見えし 別れより", shimo:"暁ばかり 憂きものはなし", author:"壬生忠岑"},
+  {kami:"朝ぼらけ 有明の月と 見るまでに", shimo:"吉野の里に 降れる白雪", author:"坂上是則"},
+  {kami:"山川に 風のかけたる しがらみは", shimo:"流れもあへぬ 紅葉なりけり", author:"春道列樹"},
+  {kami:"ひさかたの 光のどけき 春の日に", shimo:"しづ心なく 花の散るらむ", author:"紀友則"},
+  {kami:"誰をかも 知る人にせむ 高砂の", shimo:"松も昔の 友ならなくに", author:"藤原興風"},
+  {kami:"人はいさ 心も知らず ふるさとは", shimo:"花ぞ昔の 香ににほひける", author:"紀貫之"},
+  {kami:"夏の夜は まだ宵ながら 明けぬるを", shimo:"雲のいづこに 月宿るらむ", author:"清原深養父"},
+  {kami:"白露に 風の吹きしく 秋の野は", shimo:"つらぬきとめぬ 玉ぞ散りける", author:"文屋朝康"},
+  {kami:"忘らるる 身をば思はず 誓ひてし", shimo:"人の命の 惜しくもあるかな", author:"右近"},
+  {kami:"浅茅生の 小野の篠原 しのぶれど", shimo:"あまりてなどか 人の恋しき", author:"参議等"},
+  {kami:"しのぶれど 色に出でにけり わが恋は", shimo:"物や思ふと 人の問ふまで", author:"平兼盛"},
+  {kami:"恋すてふ わが名はまだき 立ちにけり", shimo:"人知れずこそ 思ひそめしか", author:"壬生忠見"},
+  {kami:"契りきな かたみに袖を しぼりつつ", shimo:"末の松山 波こさじとは", author:"清原元輔"},
+  {kami:"逢ひ見ての のちの心に くらぶれば", shimo:"昔はものを 思はざりけり", author:"権中納言敦忠"},
+  {kami:"逢ふことの 絶えてしなくは なかなかに", shimo:"人をも身をも 恨みざらまし", author:"中納言朝忠"},
+  {kami:"あはれとも いふべき人は 思ほえで", shimo:"身のいたづらに なりぬべきかな", author:"謙徳公"},
+  {kami:"由良の門を 渡る舟人 かぢを絶え", shimo:"行くへも知らぬ 恋の道かな", author:"曾禰好忠"},
+  {kami:"八重むぐら しげれる宿の さびしきに", shimo:"人こそ見えね 秋は来にけり", author:"恵慶法師"},
+  {kami:"風をいたみ 岩うつ波の おのれのみ", shimo:"くだけて物を 思ふころかな", author:"源重之"},
+  {kami:"みかきもり 衛士のたく火の 夜は燃え", shimo:"昼は消えつつ 物をこそ思へ", author:"大中臣能宣朝臣"},
+  {kami:"君がため 惜しからざりし 命さへ", shimo:"長くもがなと 思ひけるかな", author:"藤原義孝"},
+  {kami:"かくとだに えやはいぶきの さしも草", shimo:"さしも知らじな 燃ゆる思ひを", author:"藤原実方朝臣"},
+  {kami:"明けぬれば 暮るるものとは 知りながら", shimo:"なほ恨めしき 朝ぼらけかな", author:"藤原道信朝臣"},
+  {kami:"嘆きつつ ひとり寝る夜の 明くる間は", shimo:"いかに久しき ものとかは知る", author:"右大将道綱母"},
+  {kami:"忘れじの 行く末までは かたければ", shimo:"今日を限りの 命ともがな", author:"儀同三司母"},
+  {kami:"滝の音は 絶えて久しく なりぬれど", shimo:"名こそ流れて なほ聞こえけれ", author:"大納言公任"},
+  {kami:"あらざらむ この世のほかの 思ひ出に", shimo:"今ひとたびの 逢ふこともがな", author:"和泉式部"},
+  {kami:"めぐり逢ひて 見しやそれとも わかぬ間に", shimo:"雲隠れにし 夜半の月かな", author:"紫式部"},
+  {kami:"有馬山 猪名の笹原 風吹けば", shimo:"いでそよ人を 忘れやはする", author:"大弐三位"},
+  {kami:"やすらはで 寝なましものを さ夜ふけて", shimo:"かたぶくまでの 月を見しかな", author:"赤染衛門"},
+  {kami:"大江山 いく野の道の 遠ければ", shimo:"まだふみもみず 天の橋立", author:"小式部内侍"},
+  {kami:"いにしへの 奈良の都の 八重桜", shimo:"けふ九重に にほひぬるかな", author:"伊勢大輔"},
+  {kami:"夜をこめて 鳥のそら音は はかるとも", shimo:"よに逢坂の 関はゆるさじ", author:"清少納言"},
+  {kami:"今はただ 思ひ絶えなむ とばかりを", shimo:"人づてならで いふよしもがな", author:"左京大夫道雅"},
+  {kami:"朝ぼらけ 宇治の川霧 たえだえに", shimo:"あらはれわたる 瀬々の網代木", author:"権中納言定頼"},
+  {kami:"恨みわび ほさぬ袖だに あるものを", shimo:"恋に朽ちなむ 名こそ惜しけれ", author:"相模"},
+  {kami:"もろともに あはれと思へ 山桜", shimo:"花よりほかに 知る人もなし", author:"前大僧正行尊"},
+  {kami:"春の夜の 夢ばかりなる 手枕に", shimo:"かひなく立たむ 名こそ惜しけれ", author:"周防内侍"},
+  {kami:"心にも あらでうき世に ながらへば", shimo:"恋しかるべき 夜半の月かな", author:"三条院"},
+  {kami:"嵐吹く 三室の山の もみぢ葉は", shimo:"竜田の川の 錦なりけり", author:"能因法師"},
+  {kami:"さびしさに 宿を立ち出でて ながむれば", shimo:"いづこも同じ 秋の夕暮", author:"良暹法師"},
+  {kami:"夕されば 門田の稲葉 おとづれて", shimo:"芦のまろやに 秋風ぞ吹く", author:"大納言経信"},
+  {kami:"音に聞く 高師の浜の あだ波は", shimo:"かけじや袖の ぬれもこそすれ", author:"祐子内親王家紀伊"},
+  {kami:"高砂の 尾の上の桜 咲きにけり", shimo:"外山の霞 立たずもあらなむ", author:"前中納言匡房"},
+  {kami:"憂かりける 人を初瀬の 山おろしよ", shimo:"はげしかれとは 祈らぬものを", author:"源俊頼朝臣"},
+  {kami:"ちぎりおきし させもが露を 命にて", shimo:"あはれ今年の 秋もいぬめり", author:"藤原基俊"},
+  {kami:"わたの原 漕ぎ出でて見れば ひさかたの", shimo:"雲居にまがふ 沖つ白波", author:"法性寺入道前関白太政大臣"},
+  {kami:"瀬をはやみ 岩にせかるる 滝川の", shimo:"われても末に 逢はむとぞ思ふ", author:"崇徳院"},
+  {kami:"淡路島 通ふ千鳥の 鳴く声に", shimo:"幾夜寝覚めぬ 須磨の関守", author:"源兼昌"},
+  {kami:"秋風に たなびく雲の 絶え間より", shimo:"もれ出づる月の 影のさやけさ", author:"左京大夫顕輔"},
+  {kami:"ながからむ 心も知らず 黒髪の", shimo:"乱れてけさは 物をこそ思へ", author:"待賢門院堀河"},
+  {kami:"ほととぎす 鳴きつる方を ながむれば", shimo:"ただ有明の 月ぞ残れる", author:"後徳大寺左大臣"},
+  {kami:"思ひわび さても命は あるものを", shimo:"憂きに堪へぬは 涙なりけり", author:"道因法師"},
+  {kami:"世の中よ 道こそなけれ 思ひ入る", shimo:"山の奥にも 鹿ぞ鳴くなる", author:"皇太后宮大夫俊成"},
+  {kami:"ながらへば またこのごろや しのばれむ", shimo:"憂しと見し世ぞ 今は恋しき", author:"藤原清輔朝臣"},
+  {kami:"夜もすがら 物思ふころは 明けやらで", shimo:"閨のひまさへ つれなかりけり", author:"俊恵法師"},
+  {kami:"嘆けとて 月やは物を 思はする", shimo:"かこち顔なる わが涙かな", author:"西行法師"},
+  {kami:"村雨の 露もまだ干ぬ まきの葉に", shimo:"霧立ちのぼる 秋の夕暮", author:"寂蓮法師"},
+  {kami:"難波江の 芦のかりねの ひとよゆゑ", shimo:"みをつくしてや 恋ひわたるべき", author:"皇嘉門院別当"},
+  {kami:"玉の緒よ 絶えなば絶えね ながらへば", shimo:"忍ぶることの 弱りもぞする", author:"式子内親王"},
+  {kami:"見せばやな 雄島の海人の 袖だにも", shimo:"ぬれにぞぬれし 色は変はらず", author:"殷富門院大輔"},
+  {kami:"きりぎりす 鳴くや霜夜の さむしろに", shimo:"衣かたしき ひとりかも寝む", author:"後京極摂政前太政大臣"},
+  {kami:"わが袖は 潮干に見えぬ 沖の石の", shimo:"人こそ知らね 乾く間もなし", author:"二条院讃岐"},
+  {kami:"世の中は 常にもがもな 渚漕ぐ", shimo:"海人の小舟の 綱手かなしも", author:"鎌倉右大臣"},
+  {kami:"み吉野の 山の秋風 さ夜ふけて", shimo:"ふるさと寒く 衣うつなり", author:"参議雅経"},
+  {kami:"おほけなく うき世の民に おほふかな", shimo:"わが立つ杣に 墨染の袖", author:"前大僧正慈円"},
+  {kami:"花さそふ 嵐の庭の 雪ならで", shimo:"ふりゆくものは わが身なりけり", author:"入道前太政大臣"},
+  {kami:"来ぬ人を まつほの浦の 夕なぎに", shimo:"焼くや藻塩の 身もこがれつつ", author:"権中納言定家"},
+  {kami:"風そよぐ ならの小川の 夕暮は", shimo:"みそぎぞ夏の しるしなりける", author:"従二位家隆"},
+  {kami:"人も惜し 人も恨めし あぢきなく", shimo:"世を思ふゆゑに 物思ふ身は", author:"後鳥羽院"},
+  {kami:"ももしきや 古き軒端の しのぶにも", shimo:"なほあまりある 昔なりけり", author:"順徳院"},
+];
+
+let usedIndices = [];
+let correctCount = 0;
+let wrongCount = 0;
+let totalQuestions = 0;
+let answered = false;
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function getUniqueRandomIndices(correctIdx, count, max) {
+  const indices = new Set([correctIdx]);
+  while (indices.size < count) {
+    const r = Math.floor(Math.random() * max);
+    if (r !== correctIdx) indices.add(r);
+  }
+  return [...indices];
+}
+
+function showQuestion() {
+  answered = false;
+  totalQuestions++;
+
+  if (usedIndices.length >= poems.length) {
+    usedIndices = [];
+  }
+
+  let idx;
+  do {
+    idx = Math.floor(Math.random() * poems.length);
+  } while (usedIndices.includes(idx));
+  usedIndices.push(idx);
+
+  const poem = poems[idx];
+  document.getElementById("kami-no-ku-text").textContent = poem.kami;
+  document.getElementById("progress").textContent = `第${totalQuestions}問`;
+
+  const choiceIndices = shuffle(getUniqueRandomIndices(idx, 4, poems.length));
+  const choicesEl = document.getElementById("choices");
+  choicesEl.innerHTML = "";
+
+  choiceIndices.forEach(ci => {
+    const btn = document.createElement("button");
+    btn.className = "choice-btn";
+    btn.textContent = poems[ci].shimo;
+    btn.addEventListener("click", () => handleAnswer(btn, ci, idx));
+    choicesEl.appendChild(btn);
+  });
+
+  document.getElementById("poem-info").style.display = "none";
+  document.getElementById("next-btn").style.display = "none";
+}
+
+function handleAnswer(btn, selectedIdx, correctIdx) {
+  if (answered) return;
+  answered = true;
+
+  const buttons = document.querySelectorAll(".choice-btn");
+  const isCorrect = selectedIdx === correctIdx;
+
+  buttons.forEach(b => {
+    b.disabled = true;
+    const bIdx = [...document.getElementById("choices").children].indexOf(b);
+    const choiceIdx = getChoiceIndex(b);
+    if (b.textContent === poems[correctIdx].shimo) {
+      b.classList.add("correct");
+    }
+  });
+
+  if (isCorrect) {
+    correctCount++;
+    document.getElementById("correct-count").textContent = correctCount;
+    showResult("お見事", "correct");
+  } else {
+    wrongCount++;
+    document.getElementById("wrong-count").textContent = wrongCount;
+    btn.classList.add("wrong");
+    showResult("お手つき", "wrong");
+  }
+
+  const poem = poems[correctIdx];
+  const infoEl = document.getElementById("poem-info");
+  document.getElementById("poem-author").textContent = `— ${poem.author}`;
+  document.getElementById("poem-full").textContent = `${poem.kami} ${poem.shimo}`;
+  infoEl.style.display = "block";
+
+  document.getElementById("next-btn").style.display = "inline-block";
+}
+
+function getChoiceIndex(btn) {
+  return parseInt(btn.dataset.index);
+}
+
+function showResult(text, type) {
+  const overlay = document.getElementById("result-overlay");
+  const msg = document.getElementById("result-message");
+  msg.textContent = text;
+  msg.className = "result-message " + type;
+  overlay.classList.add("show");
+  setTimeout(() => overlay.classList.remove("show"), 1200);
+}
+
+document.getElementById("next-btn").addEventListener("click", showQuestion);
+
+showQuestion();
+</script>
+
+</body>
+</html>
