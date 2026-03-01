@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>二人用人生ゲーム</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      color: #fff;
+      min-height: 100vh;
+    }
+
+    h1 {
+      text-align: center;
+      padding: 20px 0 10px;
+      font-size: 28px;
+      background: linear-gradient(90deg, #f7971e, #ffd200);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ===== スタート画面 ===== */
+    #start-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    #start-screen h1 {
+      font-size: 42px;
+      margin-bottom: 10px;
+    }
+
+    #start-screen p.subtitle {
+      color: #aaa;
+      margin-bottom: 40px;
+      font-size: 16px;
+    }
+
+    .name-inputs {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-bottom: 30px;
+      width: 100%;
+      max-width: 360px;
+    }
+
+    .name-inputs label {
+      font-size: 14px;
+      color: #ccc;
+      margin-bottom: 4px;
+    }
+
+    .name-input-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .player-dot {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .player-dot.p1 { background: #ff6b6b; }
+    .player-dot.p2 { background: #4ecdc4; }
+
+    .name-inputs input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 2px solid #555;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      font-size: 16px;
+      outline: none;
+      transition: border-color 0.3s;
+    }
+
+    .name-inputs input:focus {
+      border-color: #ffd200;
+    }
+
+    .btn-start {
+      padding: 14px 60px;
+      font-size: 20px;
+      border: none;
+      border-radius: 30px;
+      background: linear-gradient(90deg, #f7971e, #ffd200);
+      color: #1a1a2e;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn-start:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 20px rgba(255, 210, 0, 0.4);
+    }
+
+    /* ===== ゲーム画面 ===== */
+    #game-screen { display: none; padding: 10px; }
+
+    /* プレイヤー情報バー */
+    .player-bar {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin: 10px 0;
+    }
+
+    .player-card {
+      background: rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 12px 20px;
+      min-width: 220px;
+      border: 2px solid transparent;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+
+    .player-card.active {
+      box-shadow: 0 0 16px rgba(255, 210, 0, 0.4);
+    }
+
+    .player-card.p1 { border-color: #ff6b6b; }
+    .player-card.p2 { border-color: #4ecdc4; }
+
+    .player-card.p1.active { border-color: #ff6b6b; box-shadow: 0 0 16px rgba(255, 107, 107, 0.5); }
+    .player-card.p2.active { border-color: #4ecdc4; box-shadow: 0 0 16px rgba(78, 205, 196, 0.5); }
+
+    .player-card .name {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+
+    .player-card .money {
+      font-size: 22px;
+      font-weight: bold;
+      color: #ffd200;
+    }
+
+    .player-card .status-icons {
+      font-size: 13px;
+      color: #aaa;
+      margin-top: 4px;
+    }
+
+    /* ボードエリア */
+    .board-area {
+      position: relative;
+      margin: 10px auto;
+      max-width: 900px;
+      overflow-x: auto;
+    }
+
+    .board-path {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      justify-content: center;
+      padding: 10px;
+    }
+
+    .cell {
+      width: 80px;
+      height: 80px;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      text-align: center;
+      position: relative;
+      padding: 4px;
+      transition: transform 0.2s;
+      cursor: default;
+      line-height: 1.3;
+    }
+
+    .cell.highlight {
+      transform: scale(1.15);
+      z-index: 10;
+    }
+
+    .cell .cell-num {
+      font-size: 9px;
+      color: rgba(255,255,255,0.5);
+      position: absolute;
+      top: 2px;
+      left: 5px;
+    }
+
+    .cell .cell-icon {
+      font-size: 20px;
+      margin-bottom: 2px;
+    }
+
+    .cell .cell-label {
+      font-size: 10px;
+      font-weight: bold;
+    }
+
+    /* セルの種類別カラー */
+    .cell-start { background: linear-gradient(135deg, #667eea, #764ba2); }
+    .cell-goal  { background: linear-gradient(135deg, #f7971e, #ffd200); color: #1a1a2e; }
+    .cell-good  { background: linear-gradient(135deg, #11998e, #38ef7d); color: #1a1a2e; }
+    .cell-bad   { background: linear-gradient(135deg, #eb3349, #f45c43); }
+    .cell-life  { background: linear-gradient(135deg, #ee9ca7, #ffdde1); color: #333; }
+    .cell-job   { background: linear-gradient(135deg, #2193b0, #6dd5ed); color: #1a1a2e; }
+    .cell-event { background: linear-gradient(135deg, #c471f5, #fa71cd); }
+    .cell-split { background: linear-gradient(135deg, #f7971e, #ffd200); color: #1a1a2e; }
+
+    /* プレイヤー駒 */
+    .pieces-container {
+      display: flex;
+      gap: 2px;
+      position: absolute;
+      bottom: 2px;
+      right: 4px;
+    }
+
+    .piece {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid #fff;
+    }
+
+    .piece.p1 { background: #ff6b6b; }
+    .piece.p2 { background: #4ecdc4; }
+
+    /* アクションエリア */
+    .action-area {
+      text-align: center;
+      margin: 16px 0;
+    }
+
+    .turn-label {
+      font-size: 16px;
+      color: #ccc;
+      margin-bottom: 10px;
+    }
+
+    .turn-label .current-player {
+      font-weight: bold;
+      font-size: 18px;
+    }
+
+    /* ルーレット */
+    .roulette-container {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .roulette-display {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #1a1a2e 30%, #302b63 100%);
+      border: 4px solid #ffd200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      font-weight: bold;
+      color: #ffd200;
+      box-shadow: 0 0 20px rgba(255, 210, 0, 0.3);
+    }
+
+    .roulette-display.spinning {
+      animation: spin-pulse 0.1s infinite;
+    }
+
+    @keyframes spin-pulse {
+      0%   { transform: scale(1); }
+      50%  { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+
+    .btn-spin {
+      padding: 12px 40px;
+      font-size: 18px;
+      border: none;
+      border-radius: 25px;
+      background: linear-gradient(90deg, #f7971e, #ffd200);
+      color: #1a1a2e;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s, opacity 0.3s;
+    }
+
+    .btn-spin:hover:not(:disabled) {
+      transform: scale(1.05);
+      box-shadow: 0 4px 16px rgba(255, 210, 0, 0.4);
+    }
+
+    .btn-spin:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* イベントメッセージ */
+    .event-message {
+      max-width: 500px;
+      margin: 12px auto;
+      padding: 16px 20px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.1);
+      border-left: 4px solid #ffd200;
+      font-size: 15px;
+      line-height: 1.6;
+      text-align: center;
+      display: none;
+    }
+
+    .event-message.show { display: block; }
+
+    .event-message .event-icon {
+      font-size: 32px;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .event-message .event-money {
+      font-size: 20px;
+      font-weight: bold;
+      margin-top: 6px;
+    }
+
+    .event-money.plus { color: #38ef7d; }
+    .event-money.minus { color: #f45c43; }
+
+    /* 分岐選択 */
+    .choice-area {
+      display: none;
+      justify-content: center;
+      gap: 14px;
+      margin-top: 12px;
+    }
+
+    .choice-area.show { display: flex; }
+
+    .btn-choice {
+      padding: 10px 24px;
+      font-size: 15px;
+      border: 2px solid #ffd200;
+      border-radius: 20px;
+      background: transparent;
+      color: #ffd200;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .btn-choice:hover {
+      background: #ffd200;
+      color: #1a1a2e;
+    }
+
+    /* ゴール画面 */
+    #result-screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+      text-align: center;
+    }
+
+    #result-screen h2 {
+      font-size: 36px;
+      background: linear-gradient(90deg, #f7971e, #ffd200);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 20px;
+    }
+
+    .result-cards {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 30px;
+    }
+
+    .result-card {
+      background: rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 24px 32px;
+      min-width: 240px;
+      border: 3px solid transparent;
+    }
+
+    .result-card.winner {
+      border-color: #ffd200;
+      box-shadow: 0 0 24px rgba(255, 210, 0, 0.4);
+    }
+
+    .result-card .rank {
+      font-size: 40px;
+      margin-bottom: 6px;
+    }
+
+    .result-card .res-name {
+      font-size: 22px;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .result-card .res-money {
+      font-size: 28px;
+      font-weight: bold;
+      color: #ffd200;
+    }
+
+    .result-card .res-details {
+      margin-top: 8px;
+      font-size: 13px;
+      color: #aaa;
+      line-height: 1.6;
+    }
+
+    .btn-retry {
+      padding: 14px 50px;
+      font-size: 18px;
+      border: none;
+      border-radius: 30px;
+      background: linear-gradient(90deg, #f7971e, #ffd200);
+      color: #1a1a2e;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .btn-retry:hover { transform: scale(1.05); }
+
+    /* ログ */
+    .log-area {
+      max-width: 500px;
+      margin: 16px auto;
+      max-height: 120px;
+      overflow-y: auto;
+      padding: 8px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 8px;
+      font-size: 12px;
+      color: #999;
+    }
+
+    .log-area p { padding: 2px 0; }
+
+    /* レスポンシブ */
+    @media (max-width: 600px) {
+      .cell { width: 64px; height: 64px; font-size: 10px; }
+      .cell .cell-icon { font-size: 16px; }
+      .cell .cell-label { font-size: 9px; }
+      .player-card { min-width: 150px; padding: 10px 14px; }
+      .player-card .money { font-size: 18px; }
+      #start-screen h1 { font-size: 30px; }
+      .roulette-display { width: 100px; height: 100px; font-size: 40px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===== スタート画面 ===== -->
+<div id="start-screen">
+  <h1>人生ゲーム</h1>
+  <p class="subtitle">二人で遊ぶボードゲーム</p>
+  <div class="name-inputs">
+    <div>
+      <label>プレイヤー1</label>
+      <div class="name-input-group">
+        <div class="player-dot p1"></div>
+        <input type="text" id="name1" placeholder="名前を入力" maxlength="10" value="プレイヤー1">
+      </div>
+    </div>
+    <div>
+      <label>プレイヤー2</label>
+      <div class="name-input-group">
+        <div class="player-dot p2"></div>
+        <input type="text" id="name2" placeholder="名前を入力" maxlength="10" value="プレイヤー2">
+      </div>
+    </div>
+  </div>
+  <button class="btn-start" onclick="startGame()">ゲーム開始</button>
+</div>
+
+<!-- ===== ゲーム画面 ===== -->
+<div id="game-screen">
+  <h1>人生ゲーム</h1>
+
+  <div class="player-bar">
+    <div class="player-card p1" id="card-p1">
+      <div class="name" id="name-p1">プレイヤー1</div>
+      <div class="money" id="money-p1">$10,000</div>
+      <div class="status-icons" id="status-p1"></div>
+    </div>
+    <div class="player-card p2" id="card-p2">
+      <div class="name" id="name-p2">プレイヤー2</div>
+      <div class="money" id="money-p2">$10,000</div>
+      <div class="status-icons" id="status-p2"></div>
+    </div>
+  </div>
+
+  <div class="board-area">
+    <div class="board-path" id="board"></div>
+  </div>
+
+  <div class="action-area">
+    <div class="turn-label">
+      <span class="current-player" id="current-player-label"></span> のターン
+    </div>
+    <div class="roulette-container">
+      <div class="roulette-display" id="roulette">?</div>
+      <button class="btn-spin" id="btn-spin" onclick="spinRoulette()">ルーレットを回す</button>
+    </div>
+    <div class="event-message" id="event-msg"></div>
+    <div class="choice-area" id="choice-area"></div>
+  </div>
+
+  <div class="log-area" id="log-area"></div>
+</div>
+
+<!-- ===== 結果画面 ===== -->
+<div id="result-screen">
+  <h2>🏆 ゲーム終了！ 🏆</h2>
+  <div class="result-cards" id="result-cards"></div>
+  <button class="btn-retry" onclick="location.reload()">もう一度遊ぶ</button>
+</div>
+
+<script>
+// ===== マスデータ定義 =====
+const CELLS = [
+  { type: 'start', icon: '🚀', label: 'スタート', effect: null },
+  // 学生時代
+  { type: 'good', icon: '📚', label: '奨学金ゲット', effect: { money: 5000, msg: '成績優秀で奨学金をもらった！' } },
+  { type: 'bad', icon: '😴', label: '寝坊', effect: { money: -2000, msg: '大事な試験に寝坊した…補講代がかかった。' } },
+  { type: 'event', icon: '🎓', label: '卒業', effect: { money: 0, msg: 'おめでとう！学校を卒業した！' } },
+  // 就職
+  { type: 'job', icon: '💼', label: '就職活動', effect: { money: 0, msg: '就職活動スタート！', job: true } },
+  { type: 'good', icon: '💰', label: '初任給', effect: { money: 8000, msg: '初めてのお給料！嬉しい！' } },
+  { type: 'bad', icon: '💸', label: '家賃支払い', effect: { money: -5000, msg: '一人暮らしの家賃を支払った。' } },
+  { type: 'event', icon: '🎉', label: '昇進', effect: { money: 10000, msg: '仕事が認められて昇進した！ボーナスゲット！' } },
+  { type: 'bad', icon: '🤒', label: '風邪', effect: { money: -3000, msg: '風邪をひいて病院代がかかった。' } },
+  // 結婚
+  { type: 'life', icon: '💒', label: '結婚', effect: { money: -8000, msg: '結婚おめでとう！盛大な結婚式を挙げた。', married: true } },
+  { type: 'good', icon: '🎁', label: 'ご祝儀', effect: { money: 12000, msg: 'たくさんのご祝儀をもらった！' } },
+  { type: 'event', icon: '🏠', label: 'マイホーム', effect: { money: -20000, msg: '夢のマイホームを購入した！', house: true } },
+  { type: 'good', icon: '📈', label: '株で大儲け', effect: { money: 15000, msg: '投資した株が大当たり！' } },
+  { type: 'bad', icon: '📉', label: '株暴落', effect: { money: -12000, msg: '持っていた株が暴落した…' } },
+  // 子育て
+  { type: 'life', icon: '👶', label: '子供誕生', effect: { money: -5000, msg: '子供が生まれた！おめでとう！出産費用がかかった。', child: true } },
+  { type: 'good', icon: '🎂', label: '誕生日', effect: { money: 3000, msg: '誕生日プレゼントをもらった！' } },
+  { type: 'bad', icon: '🚗', label: '車の修理', effect: { money: -7000, msg: '車が故障して修理代がかかった。' } },
+  { type: 'event', icon: '🌍', label: '海外旅行', effect: { money: -10000, msg: '家族で海外旅行！素敵な思い出ができた。' } },
+  { type: 'good', icon: '🏆', label: '仕事で表彰', effect: { money: 15000, msg: '優秀社員として表彰された！特別ボーナス！' } },
+  { type: 'bad', icon: '🦷', label: '歯の治療', effect: { money: -4000, msg: '虫歯の治療に費用がかかった。' } },
+  // 中年期
+  { type: 'event', icon: '🎰', label: 'ギャンブル', effect: { money: 0, msg: 'ギャンブルに挑戦！', gamble: true } },
+  { type: 'good', icon: '💎', label: '宝くじ当選', effect: { money: 30000, msg: '宝くじが大当たり！！' } },
+  { type: 'bad', icon: '🌊', label: '水漏れ', effect: { money: -8000, msg: '家の水漏れ修理に大金がかかった。' } },
+  { type: 'life', icon: '👶', label: '第二子誕生', effect: { money: -5000, msg: '二人目の子供が生まれた！おめでとう！', child: true } },
+  { type: 'good', icon: '🎖️', label: '副業成功', effect: { money: 12000, msg: '副業が軌道に乗って大成功！' } },
+  { type: 'bad', icon: '📱', label: 'スマホ水没', effect: { money: -3000, msg: 'スマホを水没させてしまった…' } },
+  { type: 'event', icon: '🏡', label: 'リフォーム', effect: { money: -15000, msg: '家をリフォームした！快適な暮らし。' } },
+  { type: 'good', icon: '📖', label: '本を出版', effect: { money: 10000, msg: '書いた本がベストセラーに！' } },
+  // 定年間近
+  { type: 'bad', icon: '🏥', label: '入院', effect: { money: -10000, msg: '入院して治療費がかかった。' } },
+  { type: 'good', icon: '🎊', label: '退職金', effect: { money: 25000, msg: '長年の勤務に対する退職金をもらった！' } },
+  { type: 'event', icon: '🎉', label: '子の結婚', effect: { money: -10000, msg: '子供の結婚式で費用を負担した。感動の一日。' } },
+  { type: 'good', icon: '🏖️', label: '年金生活', effect: { money: 8000, msg: '年金生活が始まった。悠々自適！' } },
+  { type: 'goal', icon: '🏁', label: 'ゴール', effect: null },
+];
+
+const JOBS = [
+  { name: '医者', salary: 8000 },
+  { name: 'エンジニア', salary: 6000 },
+  { name: '先生', salary: 5000 },
+  { name: 'シェフ', salary: 4500 },
+  { name: 'アーティスト', salary: 4000 },
+  { name: '公務員', salary: 5500 },
+];
+
+// ===== ゲーム状態 =====
+let players = [];
+let currentPlayerIdx = 0;
+let gameOver = false;
+let spinning = false;
+let goalsReached = 0;
+
+function createPlayer(name, idx) {
+  return {
+    name: name,
+    money: 10000,
+    pos: 0,
+    job: null,
+    married: false,
+    house: false,
+    children: 0,
+    finished: false,
+    finishOrder: 0,
+  };
+}
+
+// ===== ゲーム開始 =====
+function startGame() {
+  const n1 = document.getElementById('name1').value.trim() || 'プレイヤー1';
+  const n2 = document.getElementById('name2').value.trim() || 'プレイヤー2';
+  players = [createPlayer(n1, 0), createPlayer(n2, 1)];
+  currentPlayerIdx = 0;
+
+  document.getElementById('start-screen').style.display = 'none';
+  document.getElementById('game-screen').style.display = 'block';
+
+  renderBoard();
+  updateUI();
+}
+
+// ===== ボード描画 =====
+function renderBoard() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+
+  CELLS.forEach((cell, i) => {
+    const div = document.createElement('div');
+    div.className = `cell cell-${cell.type}`;
+    div.id = `cell-${i}`;
+    div.innerHTML = `
+      <span class="cell-num">${i}</span>
+      <span class="cell-icon">${cell.icon}</span>
+      <span class="cell-label">${cell.label}</span>
+      <div class="pieces-container" id="pieces-${i}"></div>
+    `;
+    board.appendChild(div);
+  });
+
+  renderPieces();
+}
+
+function renderPieces() {
+  // 全マスのピースをクリア
+  CELLS.forEach((_, i) => {
+    const container = document.getElementById(`pieces-${i}`);
+    if (container) container.innerHTML = '';
+  });
+
+  // プレイヤー駒を描画
+  players.forEach((p, idx) => {
+    if (p.finished) return;
+    const container = document.getElementById(`pieces-${p.pos}`);
+    if (container) {
+      const piece = document.createElement('div');
+      piece.className = `piece p${idx + 1}`;
+      container.appendChild(piece);
+    }
+  });
+}
+
+// ===== UI更新 =====
+function updateUI() {
+  players.forEach((p, idx) => {
+    const pn = idx + 1;
+    document.getElementById(`name-p${pn}`).textContent = p.name;
+    document.getElementById(`money-p${pn}`).textContent = formatMoney(p.money);
+
+    const statusParts = [];
+    if (p.job) statusParts.push(`💼 ${p.job.name}`);
+    if (p.married) statusParts.push('💒 既婚');
+    if (p.house) statusParts.push('🏠 持ち家');
+    if (p.children > 0) statusParts.push(`👶 ×${p.children}`);
+    if (p.finished) statusParts.push('🏁 ゴール済');
+    document.getElementById(`status-p${pn}`).textContent = statusParts.join('  ');
+
+    const card = document.getElementById(`card-p${pn}`);
+    card.classList.toggle('active', idx === currentPlayerIdx && !gameOver);
+  });
+
+  const cp = players[currentPlayerIdx];
+  const label = document.getElementById('current-player-label');
+  label.textContent = cp.name;
+  label.style.color = currentPlayerIdx === 0 ? '#ff6b6b' : '#4ecdc4';
+
+  document.getElementById('btn-spin').disabled = spinning || gameOver;
+}
+
+function formatMoney(amount) {
+  const prefix = amount < 0 ? '-$' : '$';
+  return prefix + Math.abs(amount).toLocaleString();
+}
+
+// ===== ルーレット =====
+function spinRoulette() {
+  if (spinning || gameOver) return;
+
+  const cp = players[currentPlayerIdx];
+  if (cp.finished) {
+    nextTurn();
+    return;
+  }
+
+  spinning = true;
+  document.getElementById('btn-spin').disabled = true;
+  hideEvent();
+
+  const roulette = document.getElementById('roulette');
+  roulette.classList.add('spinning');
+
+  let count = 0;
+  const maxCount = 15 + Math.floor(Math.random() * 10);
+  const interval = setInterval(() => {
+    roulette.textContent = Math.floor(Math.random() * 6) + 1;
+    count++;
+    if (count >= maxCount) {
+      clearInterval(interval);
+      const result = Math.floor(Math.random() * 6) + 1;
+      roulette.textContent = result;
+      roulette.classList.remove('spinning');
+      addLog(`${cp.name} はルーレットで ${result} を出した。`);
+      movePlayer(result);
+    }
+  }, 80);
+}
+
+// ===== プレイヤー移動 =====
+function movePlayer(steps) {
+  const cp = players[currentPlayerIdx];
+  const prevPos = cp.pos;
+
+  // ハイライトを一旦解除
+  document.querySelectorAll('.cell.highlight').forEach(el => el.classList.remove('highlight'));
+
+  let targetPos = cp.pos + steps;
+  if (targetPos >= CELLS.length - 1) {
+    targetPos = CELLS.length - 1; // ゴール
+  }
+
+  // アニメーション: 1マスずつ移動
+  let currentStep = cp.pos;
+  const moveInterval = setInterval(() => {
+    currentStep++;
+    if (currentStep > targetPos) {
+      clearInterval(moveInterval);
+      // 到着処理
+      cp.pos = targetPos;
+      renderPieces();
+      const cell = document.getElementById(`cell-${targetPos}`);
+      if (cell) cell.classList.add('highlight');
+      processCell(targetPos);
+      return;
+    }
+    cp.pos = currentStep;
+    renderPieces();
+  }, 200);
+}
+
+// ===== マス効果処理 =====
+function processCell(cellIdx) {
+  const cell = CELLS[cellIdx];
+  const cp = players[currentPlayerIdx];
+
+  if (cell.type === 'goal') {
+    goalsReached++;
+    cp.finished = true;
+    cp.finishOrder = goalsReached;
+    // 早くゴールしたプレイヤーにボーナス
+    const bonus = goalsReached === 1 ? 20000 : 5000;
+    cp.money += bonus;
+    showEvent('🏁', `ゴール！${goalsReached === 1 ? '1位' : '2位'}でゴール！`, bonus);
+    addLog(`${cp.name} が${goalsReached === 1 ? '1位' : '2位'}でゴールした！ボーナス ${formatMoney(bonus)}`);
+
+    if (goalsReached >= 2) {
+      setTimeout(() => {
+        gameOver = true;
+        showResults();
+      }, 2000);
+      return;
+    }
+
+    setTimeout(() => {
+      spinning = false;
+      nextTurn();
+    }, 1800);
+    return;
+  }
+
+  if (!cell.effect) {
+    spinning = false;
+    setTimeout(() => nextTurn(), 800);
+    return;
+  }
+
+  const eff = cell.effect;
+
+  // ギャンブルイベント
+  if (eff.gamble) {
+    showEvent(cell.icon, 'ギャンブルに挑戦！賭ける？', 0);
+    showChoices([
+      { text: '賭ける ($5,000)', action: () => doGamble(cp) },
+      { text: 'やめておく', action: () => { hideChoices(); finishTurn(); } },
+    ]);
+    return;
+  }
+
+  // 就職イベント
+  if (eff.job) {
+    assignJob(cp);
+    return;
+  }
+
+  // 通常イベント
+  cp.money += eff.money;
+
+  if (eff.married) cp.married = true;
+  if (eff.house) cp.house = true;
+  if (eff.child) cp.children++;
+
+  const moneyChange = eff.money;
+  showEvent(cell.icon, eff.msg, moneyChange);
+
+  if (moneyChange !== 0) {
+    addLog(`${cp.name}: ${eff.msg} (${moneyChange > 0 ? '+' : ''}${formatMoney(moneyChange)})`);
+  } else {
+    addLog(`${cp.name}: ${eff.msg}`);
+  }
+
+  updateUI();
+  setTimeout(() => finishTurn(), 1800);
+}
+
+// ===== 就職 =====
+function assignJob(cp) {
+  // ランダムに2つの職業を提示して選ばせる
+  const shuffled = [...JOBS].sort(() => Math.random() - 0.5);
+  const options = shuffled.slice(0, 2);
+
+  showEvent('💼', 'どちらの職業に就く？', 0);
+  showChoices(options.map(j => ({
+    text: `${j.name} (給料 ${formatMoney(j.salary)})`,
+    action: () => {
+      cp.job = j;
+      cp.money += j.salary;
+      hideChoices();
+      showEvent('💼', `${j.name}になった！初任給をもらった！`, j.salary);
+      addLog(`${cp.name} は${j.name}になった！ 給料 ${formatMoney(j.salary)}`);
+      updateUI();
+      setTimeout(() => finishTurn(), 1500);
+    }
+  })));
+}
+
+// ===== ギャンブル =====
+function doGamble(cp) {
+  hideChoices();
+  const win = Math.random() < 0.45;
+  if (win) {
+    cp.money += 15000;
+    showEvent('🎰', 'ギャンブルに勝った！大儲け！', 15000);
+    addLog(`${cp.name} はギャンブルで $15,000 勝った！`);
+  } else {
+    cp.money -= 5000;
+    showEvent('🎰', 'ギャンブルに負けた…残念。', -5000);
+    addLog(`${cp.name} はギャンブルで $5,000 失った…`);
+  }
+  updateUI();
+  setTimeout(() => finishTurn(), 1500);
+}
+
+// ===== ターン管理 =====
+function finishTurn() {
+  spinning = false;
+  // 給料日ボーナス（3ターンに1回）
+  const cp = players[currentPlayerIdx];
+  if (cp.job && !cp.finished) {
+    // 毎ターン少額の給料
+    // (大きなボーナスはセルイベントで処理するのでここでは省略)
+  }
+  setTimeout(() => nextTurn(), 500);
+}
+
+function nextTurn() {
+  if (gameOver) return;
+
+  // 次のプレイヤーへ
+  currentPlayerIdx = (currentPlayerIdx + 1) % 2;
+
+  // 既にゴールしているプレイヤーはスキップ
+  if (players[currentPlayerIdx].finished) {
+    if (players.every(p => p.finished)) {
+      gameOver = true;
+      showResults();
+      return;
+    }
+    currentPlayerIdx = (currentPlayerIdx + 1) % 2;
+  }
+
+  spinning = false;
+  updateUI();
+  document.getElementById('roulette').textContent = '?';
+}
+
+// ===== イベント表示 =====
+function showEvent(icon, msg, money) {
+  const el = document.getElementById('event-msg');
+  let moneyHTML = '';
+  if (money > 0) {
+    moneyHTML = `<div class="event-money plus">+${formatMoney(money)}</div>`;
+  } else if (money < 0) {
+    moneyHTML = `<div class="event-money minus">${formatMoney(money)}</div>`;
+  }
+  el.innerHTML = `<span class="event-icon">${icon}</span>${msg}${moneyHTML}`;
+  el.classList.add('show');
+}
+
+function hideEvent() {
+  document.getElementById('event-msg').classList.remove('show');
+}
+
+// ===== 選択肢表示 =====
+function showChoices(choices) {
+  const area = document.getElementById('choice-area');
+  area.innerHTML = '';
+  choices.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'btn-choice';
+    btn.textContent = c.text;
+    btn.onclick = c.action;
+    area.appendChild(btn);
+  });
+  area.classList.add('show');
+}
+
+function hideChoices() {
+  const area = document.getElementById('choice-area');
+  area.classList.remove('show');
+  area.innerHTML = '';
+}
+
+// ===== 結果画面 =====
+function showResults() {
+  document.getElementById('game-screen').style.display = 'none';
+  document.getElementById('result-screen').style.display = 'flex';
+
+  const sorted = [...players].sort((a, b) => b.money - a.money);
+  const container = document.getElementById('result-cards');
+  container.innerHTML = '';
+
+  sorted.forEach((p, i) => {
+    const isWinner = i === 0;
+    const card = document.createElement('div');
+    card.className = `result-card ${isWinner ? 'winner' : ''}`;
+
+    const details = [];
+    if (p.job) details.push(`職業: ${p.job.name}`);
+    if (p.married) details.push('既婚');
+    if (p.house) details.push('持ち家あり');
+    if (p.children > 0) details.push(`子供 ${p.children}人`);
+    details.push(`ゴール: ${p.finishOrder > 0 ? p.finishOrder + '位' : '未到達'}`);
+
+    card.innerHTML = `
+      <div class="rank">${isWinner ? '👑' : '🥈'}</div>
+      <div class="res-name">${p.name}</div>
+      <div class="res-money">${formatMoney(p.money)}</div>
+      <div class="res-details">${details.join(' / ')}</div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+// ===== ログ =====
+function addLog(text) {
+  const area = document.getElementById('log-area');
+  const p = document.createElement('p');
+  p.textContent = text;
+  area.prepend(p);
+  // 最大50件
+  while (area.children.length > 50) {
+    area.removeChild(area.lastChild);
+  }
+}
+</script>
+
+</body>
+</html>
