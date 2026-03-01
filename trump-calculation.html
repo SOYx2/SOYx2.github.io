@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>カルキュレーション - トランプゲーム</title>
+  <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+  <link rel="stylesheet" type="text/css" href="stylesheet.css">
+  <style>
+    :root {
+      --card-w: 68px;
+      --card-h: 98px;
+    }
+
+    .game-page-wrapper {
+      background: linear-gradient(160deg, #1a6b2a 0%, #2d8a40 50%, #1a6b2a 100%);
+      min-height: calc(100vh - 60px);
+      padding: 30px 0 60px;
+    }
+
+    #game-board {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 0 12px;
+    }
+
+    .game-title {
+      color: #fff;
+      text-align: center;
+      font-size: 1.8em;
+      margin: 0 0 6px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+
+    .game-sub {
+      color: rgba(255,255,255,0.75);
+      text-align: center;
+      font-size: 0.85em;
+      margin: 0 0 20px;
+    }
+
+    /* ===== CARD ===== */
+    .card {
+      width: var(--card-w);
+      height: var(--card-h);
+      border-radius: 8px;
+      background: #fff;
+      border: 1px solid #bbb;
+      box-shadow: 2px 3px 8px rgba(0,0,0,0.35);
+      position: relative;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+      display: inline-block;
+      box-sizing: border-box;
+      vertical-align: top;
+      flex-shrink: 0;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 2px 8px 16px rgba(0,0,0,0.45);
+    }
+
+    .card.red  { color: #c00; }
+    .card.black { color: #111; }
+
+    .card .cr { /* corner rank */
+      position: absolute;
+      font-size: 13px;
+      font-weight: bold;
+      line-height: 1.1;
+      text-align: center;
+    }
+    .card .cr.tl { top: 4px; left: 5px; }
+    .card .cr.br { bottom: 4px; right: 5px; transform: rotate(180deg); }
+    .card .cs { /* center suit */
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 26px;
+      line-height: 1;
+    }
+    .card .cr .rs { font-size: 10px; display: block; }
+
+    .card.face-down {
+      background: repeating-linear-gradient(
+        135deg,
+        #1a4a8a 0px,
+        #1a4a8a 6px,
+        #2a6aaa 6px,
+        #2a6aaa 12px
+      );
+      border-color: #1a4a8a;
+      cursor: pointer;
+    }
+    .card.face-down:hover {
+      transform: translateY(-4px);
+    }
+    .card.face-down .stock-num {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: rgba(255,255,255,0.9);
+      font-size: 22px;
+      font-weight: bold;
+      font-family: sans-serif;
+      pointer-events: none;
+    }
+
+    .card.empty-slot {
+      background: rgba(0,0,0,0.12);
+      border: 2px dashed rgba(255,255,255,0.3);
+      box-shadow: none;
+      cursor: default;
+    }
+    .card.empty-slot:hover { transform: none; box-shadow: none; }
+    .card.empty-slot .slot-label {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: rgba(255,255,255,0.35);
+      font-size: 22px;
+      font-weight: bold;
+    }
+
+    .card.selected {
+      transform: translateY(-10px) !important;
+      box-shadow: 0 0 0 3px #ffd700, 2px 10px 20px rgba(0,0,0,0.5) !important;
+    }
+
+    /* ===== LAYOUT ===== */
+    .board-top {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 22px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .divider {
+      width: 2px;
+      background: rgba(255,255,255,0.2);
+      align-self: stretch;
+      min-height: 120px;
+      border-radius: 1px;
+    }
+
+    .area-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .area-label {
+      color: rgba(255,255,255,0.65);
+      font-size: 11px;
+      text-align: center;
+    }
+
+    .area-label.next {
+      color: #ffe066;
+      font-weight: bold;
+      font-size: 12px;
+    }
+
+    .area-label.seq {
+      color: rgba(255,255,255,0.3);
+      font-size: 9px;
+      max-width: var(--card-w);
+      word-break: break-word;
+    }
+
+    .foundations-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .waste-row {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    /* waste pile stack effect */
+    .waste-stack {
+      position: relative;
+      width: var(--card-w);
+      height: calc(var(--card-h) + 16px);
+      cursor: pointer;
+    }
+    .waste-stack .shadow-card {
+      position: absolute;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.25);
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .waste-stack .shadow-card.s1 {
+      width: var(--card-w); height: var(--card-h);
+      top: 8px; left: 0;
+    }
+    .waste-stack .shadow-card.s2 {
+      width: var(--card-w); height: var(--card-h);
+      top: 4px; left: 0;
+    }
+    .waste-stack .top-card {
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    /* ===== STATUS ===== */
+    #status-bar {
+      text-align: center;
+      color: #ffe066;
+      font-size: 14px;
+      min-height: 22px;
+      margin-bottom: 14px;
+      font-weight: 500;
+    }
+
+    /* ===== CONTROLS ===== */
+    .controls {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+
+    .btn-game {
+      padding: 10px 22px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .btn-game:active { transform: scale(0.97); }
+    .btn-game.primary   { background: #4caf50; color: #fff; }
+    .btn-game.primary:hover { background: #43a047; }
+    .btn-game.secondary { background: rgba(255,255,255,0.18); color: #fff; }
+    .btn-game.secondary:hover { background: rgba(255,255,255,0.28); }
+
+    /* ===== HOW TO PLAY ===== */
+    .howto {
+      background: rgba(0,0,0,0.2);
+      border-radius: 10px;
+      padding: 16px 20px;
+      color: rgba(255,255,255,0.75);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .howto h3 {
+      color: #fff;
+      margin: 0 0 10px;
+      font-size: 15px;
+    }
+    .howto ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+    .howto li { margin-bottom: 4px; }
+    .howto .seq-table {
+      margin-top: 10px;
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    .howto .seq-table th, .howto .seq-table td {
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 4px 8px;
+    }
+    .howto .seq-table th { background: rgba(255,255,255,0.1); }
+
+    /* ===== WIN OVERLAY ===== */
+    #win-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.72);
+      z-index: 200;
+      justify-content: center;
+      align-items: center;
+    }
+    #win-overlay.show { display: flex; }
+
+    .win-box {
+      background: #fff;
+      border-radius: 16px;
+      padding: 50px 40px 40px;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+      max-width: 340px;
+      width: 90%;
+    }
+    .win-box h2 {
+      font-size: 2.4em;
+      margin: 0 0 12px;
+      color: #2d7a1f;
+    }
+    .win-box p { color: #555; margin: 0 0 24px; }
+
+    /* ===== GAMEOVER OVERLAY ===== */
+    #gameover-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.72);
+      z-index: 200;
+      justify-content: center;
+      align-items: center;
+    }
+    #gameover-overlay.show { display: flex; }
+    .gameover-box {
+      background: #fff;
+      border-radius: 16px;
+      padding: 50px 40px 40px;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+      max-width: 340px;
+      width: 90%;
+    }
+    .gameover-box h2 { font-size: 2em; margin: 0 0 12px; color: #c00; }
+    .gameover-box p { color: #555; margin: 0 0 24px; }
+
+    /* ===== ERROR FLASH ===== */
+    .flash-error { animation: flashRed 0.5s ease; }
+    @keyframes flashRed {
+      0%   { box-shadow: 0 0 0 3px #ff3333; }
+      100% { box-shadow: none; }
+    }
+
+    @media (max-width: 560px) {
+      :root { --card-w: 56px; --card-h: 80px; }
+      .card .cs { font-size: 20px; }
+      .card .cr { font-size: 11px; }
+      .card .cr .rs { font-size: 9px; }
+      .card.face-down .stock-num { font-size: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <div class="header-left">
+        <img class="logo" src="https://prog-8.com/images/html/advanced/main_logo.png">
+      </div>
+      <span class="fa fa-bars menu-icon"></span>
+      <div class="header-right">
+        <a href="index.html">レッスン</a>
+        <a href="hyakunin-isshu-quiz.html">百人一首</a>
+        <a href="takarazuka-quiz.html">宝塚クイズ</a>
+        <a href="life-game.html">人生ゲーム</a>
+        <a href="trump-calculation.html" class="login">カルキュレーション</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="game-page-wrapper">
+    <div id="game-board">
+      <h2 class="game-title">♠ カルキュレーション ♠</h2>
+      <p class="game-sub">全ての土台をKで完成させよう！</p>
+
+      <div id="status-bar">「新しいゲーム」を押してスタート！</div>
+
+      <!-- TOP ROW: Stock / Drawn / Foundations -->
+      <div class="board-top">
+        <!-- Stock -->
+        <div class="area-group">
+          <div id="stock-el" class="card face-down" onclick="drawCard()">
+            <span class="stock-num" id="stock-num">48</span>
+          </div>
+          <div class="area-label">山札</div>
+        </div>
+
+        <!-- Drawn card -->
+        <div class="area-group">
+          <div id="drawn-el" class="card empty-slot"></div>
+          <div class="area-label">引いたカード</div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Foundations -->
+        <div class="foundations-row" id="foundations-row">
+          <!-- rendered by JS -->
+        </div>
+      </div>
+
+      <!-- WASTE ROW -->
+      <div class="waste-row" id="waste-row">
+        <!-- rendered by JS -->
+      </div>
+
+      <!-- Controls -->
+      <div class="controls">
+        <button class="btn-game primary" onclick="initGame()">新しいゲーム</button>
+        <button class="btn-game secondary" onclick="autoPlay()">自動配置</button>
+      </div>
+
+      <!-- How to play -->
+      <div class="howto">
+        <h3>遊び方</h3>
+        <ul>
+          <li>山札をクリックして1枚引く（引いたカードは黄色でハイライト）</li>
+          <li>引いたカードを廃札置き場（4列）に置くか、条件が合えば土台に直接置く</li>
+          <li>廃札置き場の一番上のカードをクリックして選択し、土台に移動できる</li>
+          <li>土台クリックで自動的に配置（条件が合わない場合は赤くフラッシュ）</li>
+          <li>「自動配置」ボタンで廃札置き場から土台に移せるカードを一括移動</li>
+        </ul>
+
+        <table class="seq-table">
+          <thead>
+            <tr>
+              <th>土台</th>
+              <th>順序 (+間隔)</th>
+              <th>配置順</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>1列目 (+1)</td><td>Aから+1</td><td>A-2-3-4-5-6-7-8-9-10-J-Q-K</td></tr>
+            <tr><td>2列目 (+2)</td><td>2から+2</td><td>2-4-6-8-10-Q-A-3-5-7-9-J-K</td></tr>
+            <tr><td>3列目 (+3)</td><td>3から+3</td><td>3-6-9-Q-2-5-8-J-A-4-7-10-K</td></tr>
+            <tr><td>4列目 (+4)</td><td>4から+4</td><td>4-8-Q-3-7-J-2-6-10-A-5-9-K</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Win overlay -->
+  <div id="win-overlay">
+    <div class="win-box">
+      <h2>クリア！</h2>
+      <p>全ての土台が完成しました！おめでとう！</p>
+      <button class="btn-game primary" onclick="initGame(); hideOverlays()">もう一度遊ぶ</button>
+    </div>
+  </div>
+
+  <!-- Game over overlay -->
+  <div id="gameover-overlay">
+    <div class="gameover-box">
+      <h2>ゲームオーバー</h2>
+      <p>山札が尽きました。完成できませんでした...</p>
+      <button class="btn-game primary" onclick="initGame(); hideOverlays()">もう一度遊ぶ</button>
+    </div>
+  </div>
+
+  <footer>
+    <div class="container">
+      <img src="https://prog-8.com/images/html/advanced/footer_logo.png">
+      <p>Learn to Code, Learn to be Creative.</p>
+    </div>
+  </footer>
+
+  <script>
+    // ===== CONSTANTS =====
+    const SUITS  = ['♠', '♥', '♦', '♣'];
+    const RANKS  = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+
+    function buildSeq(base) {
+      const seq = [];
+      let cur = base;
+      for (let i = 0; i < 12; i++) {
+        seq.push(cur);
+        cur = ((cur + base - 1) % 13) + 1;
+      }
+      seq.push(13);
+      return seq;
+    }
+
+    // Foundation sequences (values 1-13)
+    const SEQS = [buildSeq(1), buildSeq(2), buildSeq(3), buildSeq(4)];
+    const SEQ_LABELS = ['+1', '+2', '+3', '+4'];
+
+    // Full sequence strings for display
+    const SEQ_STRINGS = SEQS.map(seq => seq.map(v => RANKS[v - 1]).join('-'));
+
+    // ===== STATE =====
+    let stock        = [];
+    let drawnCard    = null;   // card currently in "drawn" area
+    let foundations  = [[], [], [], []];
+    let waste        = [[], [], [], []];
+    let selectedWaste = null;  // index of selected waste pile, or null
+    let gameStarted  = false;
+
+    // ===== HELPERS =====
+    function valToRank(v) { return RANKS[v - 1]; }
+
+    function nextNeeded(fIdx) {
+      const len = foundations[fIdx].length;
+      return len >= 13 ? null : SEQS[fIdx][len];
+    }
+
+    function canPlace(card, fIdx) {
+      const n = nextNeeded(fIdx);
+      return n !== null && card.value === n;
+    }
+
+    function getActiveCard() {
+      if (drawnCard) return { card: drawnCard, source: 'drawn' };
+      if (selectedWaste !== null && waste[selectedWaste].length > 0) {
+        return {
+          card: waste[selectedWaste][waste[selectedWaste].length - 1],
+          source: 'waste',
+          idx: selectedWaste
+        };
+      }
+      return null;
+    }
+
+    function setStatus(msg) {
+      document.getElementById('status-bar').textContent = msg;
+    }
+
+    // ===== DECK =====
+    function createDeck() {
+      const cards = [];
+      for (const suit of SUITS) {
+        for (let v = 1; v <= 13; v++) {
+          cards.push({
+            rank: RANKS[v - 1],
+            suit,
+            value: v,
+            color: (suit === '♥' || suit === '♦') ? 'red' : 'black'
+          });
+        }
+      }
+      return cards;
+    }
+
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+    }
+
+    // ===== INIT =====
+    function initGame() {
+      hideOverlays();
+      const deck = createDeck();
+      shuffle(deck);
+
+      foundations = [[], [], [], []];
+      waste       = [[], [], [], []];
+      drawnCard   = null;
+      selectedWaste = null;
+      gameStarted = true;
+
+      // Place one base card (A, 2, 3, 4) on each foundation
+      for (let f = 0; f < 4; f++) {
+        const baseVal = f + 1;
+        const idx = deck.findIndex(c => c.value === baseVal);
+        foundations[f].push(deck.splice(idx, 1)[0]);
+      }
+
+      stock = deck; // remaining 48 cards
+      setStatus('山札をクリックしてカードを引いてください');
+      render();
+    }
+
+    // ===== ACTIONS =====
+    function drawCard() {
+      if (!gameStarted) { setStatus('まず「新しいゲーム」を押してください'); return; }
+      if (drawnCard !== null) { setStatus('引いたカードを先に置いてください'); return; }
+      if (stock.length === 0) {
+        setStatus('山札が尽きました');
+        checkGameOver();
+        return;
+      }
+      selectedWaste = null;
+      drawnCard = stock.shift();
+      setStatus(`${drawnCard.rank}${drawnCard.suit} を引きました — 廃札置き場か土台に置いてください`);
+      render();
+    }
+
+    function placeOnFoundation(fIdx) {
+      if (!gameStarted) return;
+      const active = getActiveCard();
+      if (!active) {
+        setStatus('まず山札からカードを引くか、廃札置き場のカードを選んでください');
+        return;
+      }
+
+      if (!canPlace(active.card, fIdx)) {
+        const needed = nextNeeded(fIdx);
+        setStatus(`土台${fIdx + 1}には「${needed ? valToRank(needed) : '-'}」が必要です`);
+        flashFoundation(fIdx);
+        return;
+      }
+
+      foundations[fIdx].push(active.card);
+      if (active.source === 'drawn') {
+        drawnCard = null;
+      } else {
+        waste[active.idx].pop();
+        selectedWaste = null;
+      }
+
+      render();
+
+      if (foundations.every(f => f.length === 13)) {
+        setStatus('クリア！おめでとうございます！');
+        setTimeout(() => document.getElementById('win-overlay').classList.add('show'), 400);
+        return;
+      }
+
+      setStatus('');
+    }
+
+    function handleWasteClick(wIdx) {
+      if (!gameStarted) return;
+
+      if (drawnCard !== null) {
+        // Place drawn card on this waste pile
+        waste[wIdx].push(drawnCard);
+        drawnCard = null;
+        setStatus(`廃札置き場 ${wIdx + 1} に置きました`);
+        render();
+        return;
+      }
+
+      // Toggle waste selection
+      if (selectedWaste === wIdx) {
+        selectedWaste = null;
+        setStatus('選択を解除しました');
+      } else {
+        if (waste[wIdx].length > 0) {
+          selectedWaste = wIdx;
+          const top = waste[wIdx][waste[wIdx].length - 1];
+          setStatus(`${top.rank}${top.suit} を選択 — 土台をクリックして移動してください`);
+        } else {
+          selectedWaste = null;
+          setStatus('廃札置き場が空です');
+        }
+      }
+      render();
+    }
+
+    function autoPlay() {
+      if (!gameStarted) { setStatus('まず「新しいゲーム」を押してください'); return; }
+      let moved = false;
+      let changed = true;
+
+      while (changed) {
+        changed = false;
+
+        // Try drawn card
+        if (drawnCard) {
+          for (let f = 0; f < 4; f++) {
+            if (canPlace(drawnCard, f)) {
+              foundations[f].push(drawnCard);
+              drawnCard = null;
+              selectedWaste = null;
+              moved = true;
+              changed = true;
+              break;
+            }
+          }
+        }
+
+        // Try all waste top cards
+        for (let w = 0; w < 4; w++) {
+          if (waste[w].length === 0) continue;
+          const top = waste[w][waste[w].length - 1];
+          for (let f = 0; f < 4; f++) {
+            if (canPlace(top, f)) {
+              foundations[f].push(waste[w].pop());
+              moved = true;
+              changed = true;
+              if (selectedWaste === w && waste[w].length === 0) selectedWaste = null;
+              break;
+            }
+          }
+        }
+      }
+
+      if (moved) {
+        setStatus('自動配置しました');
+        render();
+        if (foundations.every(f => f.length === 13)) {
+          setTimeout(() => document.getElementById('win-overlay').classList.add('show'), 400);
+        }
+      } else {
+        setStatus('自動配置できるカードはありません');
+      }
+    }
+
+    function checkGameOver() {
+      // Game is over if stock is empty and no waste cards can go to foundation
+      // and no waste → foundation is possible
+      if (stock.length > 0) return;
+      const anyMove = waste.some(pile => {
+        if (pile.length === 0) return false;
+        const top = pile[pile.length - 1];
+        return foundations.some((_, fIdx) => canPlace(top, fIdx));
+      });
+      if (!anyMove) {
+        setTimeout(() => document.getElementById('gameover-overlay').classList.add('show'), 400);
+      }
+    }
+
+    // ===== RENDERING =====
+    function cardHTML(card, extraClass = '') {
+      return `<div class="card ${card.color} ${extraClass}">
+        <div class="cr tl">${card.rank}<span class="rs">${card.suit}</span></div>
+        <div class="cs">${card.suit}</div>
+        <div class="cr br">${card.rank}<span class="rs">${card.suit}</span></div>
+      </div>`;
+    }
+
+    function emptySlotHTML(label = '') {
+      return `<div class="card empty-slot">${label ? `<div class="slot-label">${label}</div>` : ''}</div>`;
+    }
+
+    function render() {
+      renderStock();
+      renderDrawn();
+      renderFoundations();
+      renderWaste();
+    }
+
+    function renderStock() {
+      const el = document.getElementById('stock-el');
+      const numEl = document.getElementById('stock-num');
+      if (stock.length > 0) {
+        el.className = 'card face-down';
+        el.onclick = drawCard;
+        numEl.textContent = stock.length;
+        numEl.style.display = '';
+      } else {
+        el.className = 'card empty-slot';
+        el.onclick = null;
+        el.innerHTML = '<div class="slot-label" style="font-size:12px">山札<br>なし</div>';
+      }
+    }
+
+    function renderDrawn() {
+      const el = document.getElementById('drawn-el');
+      if (drawnCard) {
+        el.className = '';
+        el.innerHTML = cardHTML(drawnCard, 'selected');
+        el.onclick = null;
+      } else {
+        el.className = 'card empty-slot';
+        el.innerHTML = '';
+        el.onclick = null;
+      }
+    }
+
+    function renderFoundations() {
+      const row = document.getElementById('foundations-row');
+      row.innerHTML = '';
+
+      for (let f = 0; f < 4; f++) {
+        const pile = foundations[f];
+        const topCard = pile.length > 0 ? pile[pile.length - 1] : null;
+        const needed = nextNeeded(f);
+        const neededStr = needed ? valToRank(needed) : '✓';
+        const isComplete = pile.length === 13;
+
+        const group = document.createElement('div');
+        group.className = 'area-group';
+        group.id = 'foundation-' + f;
+
+        const cardArea = document.createElement('div');
+        cardArea.style.cursor = 'pointer';
+        cardArea.onclick = () => placeOnFoundation(f);
+        cardArea.innerHTML = topCard
+          ? cardHTML(topCard, isComplete ? 'complete' : '')
+          : emptySlotHTML(RANKS[f]);
+
+        const labelProgress = document.createElement('div');
+        labelProgress.className = 'area-label';
+        labelProgress.textContent = `${SEQ_LABELS[f]}（${pile.length}/13）`;
+
+        const labelNext = document.createElement('div');
+        labelNext.className = 'area-label next';
+        labelNext.textContent = isComplete ? '完成！' : `次: ${neededStr}`;
+
+        const labelSeq = document.createElement('div');
+        labelSeq.className = 'area-label seq';
+        labelSeq.textContent = SEQ_STRINGS[f];
+
+        group.appendChild(cardArea);
+        group.appendChild(labelProgress);
+        group.appendChild(labelNext);
+        group.appendChild(labelSeq);
+        row.appendChild(group);
+      }
+    }
+
+    function renderWaste() {
+      const row = document.getElementById('waste-row');
+      row.innerHTML = '';
+
+      for (let w = 0; w < 4; w++) {
+        const pile = waste[w];
+        const topCard = pile.length > 0 ? pile[pile.length - 1] : null;
+        const isSelected = selectedWaste === w;
+
+        const group = document.createElement('div');
+        group.className = 'area-group';
+
+        let cardContent = '';
+        if (topCard) {
+          const depth = pile.length;
+          if (depth >= 3) {
+            cardContent = `
+              <div class="waste-stack" onclick="handleWasteClick(${w})">
+                <div class="shadow-card s1"></div>
+                <div class="shadow-card s2"></div>
+                <div class="top-card">${cardHTML(topCard, isSelected ? 'selected' : '')}</div>
+              </div>`;
+          } else if (depth === 2) {
+            cardContent = `
+              <div class="waste-stack" onclick="handleWasteClick(${w})">
+                <div class="shadow-card s2"></div>
+                <div class="top-card">${cardHTML(topCard, isSelected ? 'selected' : '')}</div>
+              </div>`;
+          } else {
+            cardContent = `<div onclick="handleWasteClick(${w})">${cardHTML(topCard, isSelected ? 'selected' : '')}</div>`;
+          }
+        } else {
+          cardContent = `<div onclick="handleWasteClick(${w})">${emptySlotHTML()}</div>`;
+        }
+
+        const label = document.createElement('div');
+        label.className = 'area-label';
+        label.textContent = `廃札 ${w + 1}（${pile.length}枚）`;
+
+        group.innerHTML = cardContent;
+        group.appendChild(label);
+        row.appendChild(group);
+      }
+    }
+
+    // ===== EFFECTS =====
+    function flashFoundation(fIdx) {
+      const el = document.getElementById('foundation-' + fIdx);
+      if (!el) return;
+      el.classList.remove('flash-error');
+      void el.offsetWidth; // reflow
+      el.classList.add('flash-error');
+      setTimeout(() => el.classList.remove('flash-error'), 600);
+    }
+
+    function hideOverlays() {
+      document.getElementById('win-overlay').classList.remove('show');
+      document.getElementById('gameover-overlay').classList.remove('show');
+    }
+
+    // Initial empty render
+    window.addEventListener('load', render);
+  </script>
+</body>
+</html>
