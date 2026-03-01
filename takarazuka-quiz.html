@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>宝塚トップスタークイズ</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+      background: #0d0a1a;
+      color: #e8daf0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    header {
+      width: 100%;
+      text-align: center;
+      padding: 30px 20px 10px;
+      background: linear-gradient(180deg, #1a1030 0%, #0d0a1a 100%);
+    }
+
+    header h1 {
+      font-size: 1.8rem;
+      color: #c9a0dc;
+      letter-spacing: 0.3em;
+      margin-bottom: 6px;
+    }
+
+    header p {
+      font-size: 0.9rem;
+      color: #7a6a8a;
+    }
+
+    .score-bar {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      padding: 12px 20px;
+      font-size: 1rem;
+      color: #c9a0dc;
+    }
+
+    .score-bar span {
+      letter-spacing: 0.1em;
+    }
+
+    #quiz-area {
+      width: 90%;
+      max-width: 600px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px 0 40px;
+    }
+
+    .show-card {
+      background: linear-gradient(135deg, #1e1030, #150d24);
+      border: 1px solid #c9a0dc44;
+      border-radius: 12px;
+      padding: 30px 24px;
+      margin-bottom: 24px;
+      width: 100%;
+      text-align: center;
+      position: relative;
+    }
+
+    .show-card::before {
+      content: "作品名";
+      position: absolute;
+      top: -12px;
+      left: 20px;
+      background: #0d0a1a;
+      padding: 0 10px;
+      font-size: 0.8rem;
+      color: #c9a0dc;
+    }
+
+    .show-title {
+      font-size: 1.5rem;
+      line-height: 1.6;
+      letter-spacing: 0.1em;
+      color: #f0e0ff;
+      font-weight: bold;
+    }
+
+    .show-meta {
+      margin-top: 12px;
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      font-size: 0.9rem;
+      color: #9a8aaa;
+    }
+
+    .show-meta .troupe-badge {
+      display: inline-block;
+      padding: 2px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      letter-spacing: 0.1em;
+    }
+
+    .troupe-flower { background: #3a1a2a; color: #f0a0c0; border: 1px solid #f0a0c044; }
+    .troupe-moon { background: #2a2a1a; color: #e0d080; border: 1px solid #e0d08044; }
+    .troupe-snow { background: #1a2a3a; color: #80c0e0; border: 1px solid #80c0e044; }
+    .troupe-star { background: #3a1a1a; color: #e08080; border: 1px solid #e0808044; }
+    .troupe-cosmos { background: #2a1a3a; color: #b080e0; border: 1px solid #b080e044; }
+
+    .input-label {
+      font-size: 0.9rem;
+      color: #7a6a8a;
+      margin-bottom: 12px;
+      letter-spacing: 0.2em;
+    }
+
+    .answer-area {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .answer-input {
+      width: 100%;
+      background: #1e1030;
+      border: 2px solid #c9a0dc44;
+      border-radius: 8px;
+      padding: 14px 20px;
+      color: #f0e0ff;
+      font-family: inherit;
+      font-size: 1.2rem;
+      text-align: center;
+      outline: none;
+      transition: border-color 0.3s;
+      letter-spacing: 0.15em;
+    }
+
+    .answer-input:focus {
+      border-color: #c9a0dc;
+    }
+
+    .answer-input::placeholder {
+      color: #5a4a6a;
+      letter-spacing: 0.1em;
+    }
+
+    .answer-input:disabled {
+      opacity: 0.6;
+    }
+
+    .submit-btn {
+      background: linear-gradient(135deg, #9a60c0, #7040a0);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 50px;
+      font-family: inherit;
+      font-size: 1.1rem;
+      cursor: pointer;
+      letter-spacing: 0.2em;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .submit-btn:hover {
+      background: linear-gradient(135deg, #aa70d0, #8050b0);
+    }
+
+    .submit-btn:active {
+      transform: scale(0.98);
+    }
+
+    .submit-btn:disabled {
+      opacity: 0.5;
+      cursor: default;
+      transform: none;
+    }
+
+    .show-info {
+      width: 100%;
+      background: #1e1030;
+      border: 1px solid #c9a0dc44;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-top: 16px;
+      display: none;
+      line-height: 1.8;
+      text-align: center;
+    }
+
+    .show-info .correct-answer {
+      color: #c9a0dc;
+      font-size: 1.1rem;
+      font-weight: bold;
+    }
+
+    .next-btn {
+      margin-top: 20px;
+      background: #c9a0dc;
+      color: #0d0a1a;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 40px;
+      font-family: inherit;
+      font-size: 1.1rem;
+      cursor: pointer;
+      letter-spacing: 0.2em;
+      display: none;
+      transition: background 0.2s;
+      font-weight: bold;
+    }
+
+    .next-btn:hover {
+      background: #d9b0ec;
+    }
+
+    .result-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+
+    .result-overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .result-message {
+      font-size: 3rem;
+      font-weight: bold;
+      letter-spacing: 0.3em;
+      text-shadow: 0 0 30px currentColor;
+      animation: popIn 0.4s ease-out;
+    }
+
+    .result-message.correct {
+      color: #c9a0dc;
+    }
+
+    .result-message.wrong {
+      color: #8a4a6a;
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0.5); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .progress {
+      font-size: 0.85rem;
+      color: #7a6a8a;
+      margin-bottom: 16px;
+    }
+
+    @media (max-width: 600px) {
+      header h1 { font-size: 1.4rem; }
+      .show-title { font-size: 1.2rem; }
+      .answer-input { font-size: 1rem; }
+      .result-message { font-size: 2.2rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>宝塚トップスタークイズ</h1>
+  <p>作品名から男役トップスターを当てよう</p>
+</header>
+
+<div class="score-bar">
+  <span>正解: <strong id="correct-count">0</strong></span>
+  <span>不正解: <strong id="wrong-count">0</strong></span>
+</div>
+
+<div id="quiz-area">
+  <p class="progress" id="progress"></p>
+  <div class="show-card">
+    <p class="show-title" id="show-title"></p>
+    <div class="show-meta">
+      <span id="troupe-badge" class="troupe-badge"></span>
+      <span id="show-year"></span>
+    </div>
+  </div>
+  <p class="input-label" id="input-label">&#9660; トップスター名を入力してください</p>
+  <div class="answer-area">
+    <input type="text" class="answer-input" id="answer-input" placeholder="例: 柚香光" autocomplete="off">
+    <button class="submit-btn" id="submit-btn">解答する</button>
+  </div>
+  <div class="show-info" id="show-info">
+    <p class="correct-answer" id="correct-answer-text"></p>
+  </div>
+  <button class="next-btn" id="next-btn">次の問題</button>
+</div>
+
+<div class="result-overlay" id="result-overlay">
+  <div class="result-message" id="result-message"></div>
+</div>
+
+<script>
+const shows = [
+  // ===== 花組 =====
+  // 明日海りお (トップスター: 2014-2019)
+  {title:"ME AND MY GIRL", year:2016, troupe:"花組", star:["明日海りお"]},
+  {title:"金色の砂漠", year:2016, troupe:"花組", star:["明日海りお"]},
+  {title:"ポーの一族", year:2018, troupe:"花組", star:["明日海りお"]},
+  {title:"MESSIAH −異聞・天草四郎−", year:2018, troupe:"花組", star:["明日海りお"]},
+  {title:"CASANOVA", year:2019, troupe:"花組", star:["明日海りお"]},
+  {title:"A Fairy Tale −青い薔薇の精−", year:2019, troupe:"花組", star:["明日海りお"]},
+  // 柚香光 (トップスター: 2020-2024)
+  {title:"はいからさんが通る", year:2020, troupe:"花組", star:["柚香光"]},
+  {title:"アウグストゥス −尊厳ある者−", year:2021, troupe:"花組", star:["柚香光"]},
+  {title:"元禄バロックロック", year:2022, troupe:"花組", star:["柚香光"]},
+  {title:"巡礼の年〜リスト・フェレンツ、魂の彷徨〜", year:2022, troupe:"花組", star:["柚香光"]},
+  {title:"うたかたの恋", year:2023, troupe:"花組", star:["柚香光"]},
+  {title:"鴛鴦歌合戦", year:2023, troupe:"花組", star:["柚香光"]},
+  {title:"アルカンシェル〜虹の歌の輝く未来〜", year:2024, troupe:"花組", star:["柚香光"]},
+  // 永久輝せあ (トップスター: 2024-)
+  {title:"ドン・ジュアン", year:2024, troupe:"花組", star:["永久輝せあ"]},
+
+  // ===== 月組 =====
+  // 龍真咲 (トップスター: 2012-2016)
+  {title:"激情 −ホセとカルメン−", year:2016, troupe:"月組", star:["龍真咲"]},
+  {title:"NOBUNAGA＜信長＞ −下天の夢−", year:2016, troupe:"月組", star:["龍真咲"]},
+  // 珠城りょう (トップスター: 2017-2021)
+  {title:"グランドホテル", year:2017, troupe:"月組", star:["珠城りょう"]},
+  {title:"All for One 〜ダルタニアンと太陽王〜", year:2017, troupe:"月組", star:["珠城りょう"]},
+  {title:"BADDY −悪党は自分のハートを盗み出せ−", year:2018, troupe:"月組", star:["珠城りょう"]},
+  {title:"エリザベート −愛と死の輪舞−", year:2018, troupe:"月組", star:["珠城りょう"]},
+  {title:"夢現無双", year:2019, troupe:"月組", star:["珠城りょう"]},
+  {title:"I AM FROM AUSTRIA −故郷は甘き調べ−", year:2019, troupe:"月組", star:["珠城りょう"]},
+  {title:"ピガール狂騒曲", year:2020, troupe:"月組", star:["珠城りょう"]},
+  {title:"桜嵐記", year:2021, troupe:"月組", star:["珠城りょう"]},
+  // 月城かなと (トップスター: 2021-2024)
+  {title:"今夜、ロマンス劇場で", year:2021, troupe:"月組", star:["月城かなと"]},
+  {title:"グレート・ギャツビー", year:2022, troupe:"月組", star:["月城かなと"]},
+  {title:"応天の門", year:2023, troupe:"月組", star:["月城かなと"]},
+  {title:"フリューゲル −君がくれた翼−", year:2023, troupe:"月組", star:["月城かなと"]},
+  {title:"Eternal Voice 消え残る想い", year:2024, troupe:"月組", star:["月城かなと"]},
+  // 鳳月杏 (トップスター: 2024-)
+  {title:"ゴールデン・リバティ", year:2024, troupe:"月組", star:["鳳月杏"]},
+
+  // ===== 雪組 =====
+  // 早霧せいな (トップスター: 2014-2017)
+  {title:"るろうに剣心", year:2016, troupe:"雪組", star:["早霧せいな"]},
+  {title:"私立探偵ケイレブ・ハント", year:2016, troupe:"雪組", star:["早霧せいな"]},
+  {title:"幕末太陽傳", year:2017, troupe:"雪組", star:["早霧せいな"]},
+  // 望海風斗 (トップスター: 2017-2021)
+  {title:"ひかりふる路 〜革命家、マクシミリアン・ロベスピエール〜", year:2017, troupe:"雪組", star:["望海風斗"]},
+  {title:"ファントム", year:2018, troupe:"雪組", star:["望海風斗"]},
+  {title:"凱旋門", year:2018, troupe:"雪組", star:["望海風斗"]},
+  {title:"壬生義士伝", year:2019, troupe:"雪組", star:["望海風斗"]},
+  {title:"ONCE UPON A TIME IN AMERICA", year:2020, troupe:"雪組", star:["望海風斗"]},
+  {title:"fff −フォルティッシッシモ−", year:2021, troupe:"雪組", star:["望海風斗"]},
+  // 彩風咲奈 (トップスター: 2021-2024)
+  {title:"CITY HUNTER −盗まれたXYZ−", year:2021, troupe:"雪組", star:["彩風咲奈"]},
+  {title:"夢介千両みやげ", year:2022, troupe:"雪組", star:["彩風咲奈"]},
+  {title:"蒼穹の昴", year:2023, troupe:"雪組", star:["彩風咲奈"]},
+  {title:"Lilacの夢路", year:2023, troupe:"雪組", star:["彩風咲奈"]},
+  {title:"ベルサイユのばら −フェルゼン編−", year:2024, troupe:"雪組", star:["彩風咲奈"]},
+  // 朝美絢 (トップスター: 2024-)
+  {title:"愛の不時着", year:2024, troupe:"雪組", star:["朝美絢"]},
+
+  // ===== 星組 =====
+  // 北翔海莉 (トップスター: 2015-2016)
+  {title:"こうもり −こうもり博士の愉快な復讐劇−", year:2016, troupe:"星組", star:["北翔海莉"]},
+  {title:"桜華に舞え", year:2016, troupe:"星組", star:["北翔海莉"]},
+  // 紅ゆずる (トップスター: 2017-2019)
+  {title:"THE SCARLET PIMPERNEL", year:2017, troupe:"星組", star:["紅ゆずる"]},
+  {title:"ベルリン、わが愛", year:2017, troupe:"星組", star:["紅ゆずる"]},
+  {title:"ANOTHER WORLD", year:2018, troupe:"星組", star:["紅ゆずる"]},
+  {title:"Thunderbolt Fantasy 東離劍遊紀", year:2019, troupe:"星組", star:["紅ゆずる"]},
+  {title:"霧深きエルベのほとり", year:2019, troupe:"星組", star:["紅ゆずる"]},
+  // 礼真琴 (トップスター: 2019-2024)
+  {title:"眩耀の谷 〜舞い降りた新星〜", year:2020, troupe:"星組", star:["礼真琴"]},
+  {title:"ロックオペラ モーツァルト", year:2020, troupe:"星組", star:["礼真琴"]},
+  {title:"ロミオとジュリエット", year:2021, troupe:"星組", star:["礼真琴"]},
+  {title:"柳生忍法帖", year:2021, troupe:"星組", star:["礼真琴"]},
+  {title:"王家に捧ぐ歌", year:2022, troupe:"星組", star:["礼真琴"]},
+  {title:"ディミトリ 〜曙光に散る、紫の花〜", year:2022, troupe:"星組", star:["礼真琴"]},
+  {title:"1789 −バスティーユの恋人たち−", year:2023, troupe:"星組", star:["礼真琴"]},
+  {title:"RRR × TAKA\"R\"AZUKA 〜D.B.S〜", year:2024, troupe:"星組", star:["礼真琴"]},
+  {title:"記憶にございません!", year:2024, troupe:"星組", star:["礼真琴"]},
+  // 暁千星 (トップスター: 2025-)
+  {title:"プライム・ステージ", year:2025, troupe:"星組", star:["暁千星"]},
+
+  // ===== 宙組 =====
+  // 朝夏まなと (トップスター: 2015-2017)
+  {title:"エリザベート −愛と死の輪舞−", year:2016, troupe:"宙組", star:["朝夏まなと"]},
+  {title:"王妃の館", year:2017, troupe:"宙組", star:["朝夏まなと"]},
+  {title:"神々の土地 〜ロマノフたちの黄昏〜", year:2017, troupe:"宙組", star:["朝夏まなと"]},
+  // 真風涼帆 (トップスター: 2018-2023)
+  {title:"WEST SIDE STORY", year:2018, troupe:"宙組", star:["真風涼帆"]},
+  {title:"天は赤い河のほとり", year:2018, troupe:"宙組", star:["真風涼帆"]},
+  {title:"オーシャンズ11", year:2019, troupe:"宙組", star:["真風涼帆"]},
+  {title:"El Japón −イスパニアのサムライ−", year:2019, troupe:"宙組", star:["真風涼帆"]},
+  {title:"アナスタシア", year:2020, troupe:"宙組", star:["真風涼帆"]},
+  {title:"シャーロック・ホームズ", year:2021, troupe:"宙組", star:["真風涼帆"]},
+  {title:"NEVER SAY GOODBYE", year:2022, troupe:"宙組", star:["真風涼帆"]},
+  {title:"HiGH&LOW −THE PREQUEL−", year:2022, troupe:"宙組", star:["真風涼帆"]},
+  {title:"Crimson Glory −深紅の旗のもとに−", year:2023, troupe:"宙組", star:["真風涼帆"]},
+  // 芹香斗亜 (トップスター: 2023-2025)
+  {title:"大逆転裁判 −成歩堂カナメの冒険−", year:2024, troupe:"宙組", star:["芹香斗亜"]},
+];
+
+const troupeClass = {
+  "花組": "troupe-flower",
+  "月組": "troupe-moon",
+  "雪組": "troupe-snow",
+  "星組": "troupe-star",
+  "宙組": "troupe-cosmos"
+};
+
+let usedIndices = [];
+let correctCount = 0;
+let wrongCount = 0;
+let totalQuestions = 0;
+let answered = false;
+let currentShow = null;
+
+function showQuestion() {
+  answered = false;
+  totalQuestions++;
+
+  if (usedIndices.length >= shows.length) {
+    usedIndices = [];
+  }
+
+  let idx;
+  do {
+    idx = Math.floor(Math.random() * shows.length);
+  } while (usedIndices.includes(idx));
+  usedIndices.push(idx);
+
+  currentShow = shows[idx];
+
+  document.getElementById("show-title").textContent = currentShow.title;
+  document.getElementById("progress").textContent = "第" + totalQuestions + "問";
+
+  const badge = document.getElementById("troupe-badge");
+  badge.textContent = currentShow.troupe;
+  badge.className = "troupe-badge " + troupeClass[currentShow.troupe];
+
+  document.getElementById("show-year").textContent = currentShow.year + "年";
+
+  document.getElementById("show-info").style.display = "none";
+  document.getElementById("next-btn").style.display = "none";
+  document.getElementById("input-label").textContent = "\u25BC トップスター名を入力してください";
+
+  const input = document.getElementById("answer-input");
+  input.value = "";
+  input.disabled = false;
+  input.style.borderColor = "";
+  input.focus();
+
+  document.getElementById("submit-btn").disabled = false;
+}
+
+function normalize(str) {
+  return str.replace(/\s+/g, "").replace(/　/g, "").trim();
+}
+
+function checkAnswer() {
+  if (answered) return;
+
+  const input = document.getElementById("answer-input");
+  const userAnswer = normalize(input.value);
+
+  if (userAnswer === "") return;
+
+  answered = true;
+  input.disabled = true;
+  document.getElementById("submit-btn").disabled = true;
+
+  const isCorrect = currentShow.star.some(function(s) {
+    return normalize(s) === userAnswer;
+  });
+
+  if (isCorrect) {
+    correctCount++;
+    document.getElementById("correct-count").textContent = correctCount;
+    input.style.borderColor = "#7a40a0";
+    showResult("お見事！", "correct");
+  } else {
+    wrongCount++;
+    document.getElementById("wrong-count").textContent = wrongCount;
+    input.style.borderColor = "#8a4a6a";
+    showResult("ヤーッ！", "wrong");
+  }
+
+  var infoEl = document.getElementById("show-info");
+  document.getElementById("correct-answer-text").textContent =
+    "正解: " + currentShow.star[0] + "（" + currentShow.troupe + " " + currentShow.year + "年）";
+  infoEl.style.display = "block";
+
+  document.getElementById("next-btn").style.display = "inline-block";
+}
+
+function showResult(text, type) {
+  var overlay = document.getElementById("result-overlay");
+  var msg = document.getElementById("result-message");
+  msg.textContent = text;
+  msg.className = "result-message " + type;
+  overlay.classList.add("show");
+  setTimeout(function() { overlay.classList.remove("show"); }, 1200);
+}
+
+document.getElementById("submit-btn").addEventListener("click", checkAnswer);
+
+document.getElementById("answer-input").addEventListener("keydown", function(e) {
+  if (e.key === "Enter") {
+    if (answered) {
+      showQuestion();
+    } else {
+      checkAnswer();
+    }
+  }
+});
+
+document.getElementById("next-btn").addEventListener("click", showQuestion);
+
+showQuestion();
+</script>
+
+</body>
+</html>
