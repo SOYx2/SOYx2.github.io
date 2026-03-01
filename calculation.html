@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>カルキュレーション - トランプ一人遊び</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+      background: #1a6b3c;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    header {
+      width: 100%;
+      background: rgba(34,49,52,0.95);
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    header h1 {
+      font-size: 20px;
+      font-weight: bold;
+      letter-spacing: 2px;
+    }
+
+    header a {
+      color: #aee;
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    header a:hover { color: #fff; }
+
+    .game-container {
+      max-width: 900px;
+      width: 100%;
+      padding: 16px;
+    }
+
+    .info-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      font-size: 14px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .info-bar button {
+      background: #e8c840;
+      color: #333;
+      border: none;
+      padding: 8px 20px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .info-bar button:hover { background: #f0d860; }
+
+    .section-label {
+      font-size: 13px;
+      color: #a0d8a0;
+      margin-bottom: 6px;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+
+    /* Card styles */
+    .card {
+      width: 72px;
+      height: 100px;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: bold;
+      position: relative;
+      user-select: none;
+      transition: transform 0.15s, box-shadow 0.15s;
+      flex-shrink: 0;
+    }
+
+    .card-face {
+      background: #fff;
+      border: 2px solid #ccc;
+      box-shadow: 1px 2px 6px rgba(0,0,0,0.2);
+    }
+
+    .card-face.red { color: #d32f2f; }
+    .card-face.black { color: #222; }
+
+    .card-back {
+      background: linear-gradient(135deg, #2255aa, #3366cc);
+      border: 2px solid #1a4488;
+      box-shadow: 1px 2px 6px rgba(0,0,0,0.3);
+      cursor: pointer;
+    }
+
+    .card-back::after {
+      content: "";
+      width: 54px;
+      height: 82px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 4px;
+      position: absolute;
+    }
+
+    .card-back:hover {
+      transform: translateY(-3px);
+      box-shadow: 2px 5px 12px rgba(0,0,0,0.4);
+    }
+
+    .card-placeholder {
+      background: rgba(255,255,255,0.08);
+      border: 2px dashed rgba(255,255,255,0.25);
+    }
+
+    .card-suit {
+      font-size: 12px;
+      position: absolute;
+      bottom: 6px;
+    }
+
+    .card-rank {
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .card.selected {
+      transform: translateY(-8px);
+      box-shadow: 0 8px 20px rgba(255,215,0,0.6);
+      border-color: #ffd700;
+    }
+
+    .card.highlight {
+      box-shadow: 0 0 12px rgba(255,215,0,0.7);
+      border-color: #ffd700;
+    }
+
+    /* Foundations */
+    .foundations-area {
+      margin-bottom: 16px;
+    }
+
+    .foundations {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    .foundation {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .foundation .card {
+      cursor: pointer;
+    }
+
+    .foundation-next {
+      font-size: 11px;
+      color: #c0e8c0;
+      background: rgba(0,0,0,0.2);
+      padding: 2px 8px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+
+    .foundation-seq {
+      font-size: 10px;
+      color: #90c090;
+      max-width: 76px;
+      text-align: center;
+      line-height: 1.4;
+      word-break: break-all;
+    }
+
+    .foundation-count {
+      font-size: 11px;
+      color: #d0d0d0;
+    }
+
+    /* Stock and drawn area */
+    .stock-area {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+
+    .stock-section, .drawn-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .stock-count {
+      font-size: 12px;
+      color: #c0c0c0;
+    }
+
+    .drawn-card .card {
+      cursor: pointer;
+    }
+
+    /* Waste piles */
+    .waste-area {
+      margin-bottom: 16px;
+    }
+
+    .wastes {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    .waste-pile {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .waste-pile .card {
+      cursor: pointer;
+    }
+
+    .waste-cards {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .waste-stacked {
+      margin-top: -76px;
+    }
+
+    .waste-stacked:first-child {
+      margin-top: 0;
+    }
+
+    .waste-count {
+      font-size: 11px;
+      color: #c0c0c0;
+    }
+
+    /* Messages */
+    .message {
+      text-align: center;
+      font-size: 16px;
+      min-height: 28px;
+      margin-bottom: 8px;
+      color: #ffe680;
+    }
+
+    /* Win / Lose overlay */
+    .overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .overlay.show {
+      display: flex;
+    }
+
+    .overlay-content {
+      background: #2a5a3a;
+      border: 3px solid #e8c840;
+      border-radius: 16px;
+      padding: 40px;
+      text-align: center;
+    }
+
+    .overlay-content h2 {
+      font-size: 36px;
+      margin-bottom: 16px;
+      color: #ffd700;
+    }
+
+    .overlay-content p {
+      font-size: 18px;
+      margin-bottom: 24px;
+    }
+
+    .overlay-content button {
+      background: #e8c840;
+      color: #333;
+      border: none;
+      padding: 12px 40px;
+      border-radius: 8px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .overlay-content button:hover { background: #f0d860; }
+
+    /* Rules toggle */
+    .rules-toggle {
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .rules-toggle button {
+      background: transparent;
+      color: #a0d8a0;
+      border: 1px solid #a0d8a0;
+      padding: 4px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .rules-toggle button:hover { background: rgba(255,255,255,0.1); }
+
+    .rules-box {
+      display: none;
+      background: rgba(0,0,0,0.3);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+      font-size: 13px;
+      line-height: 1.8;
+      text-align: left;
+    }
+
+    .rules-box.show { display: block; }
+
+    .rules-box h3 {
+      color: #e8c840;
+      margin-bottom: 8px;
+    }
+
+    .rules-box ul {
+      padding-left: 20px;
+    }
+
+    .rules-box .seq-table {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 2px 12px;
+      margin: 8px 0;
+      font-size: 12px;
+    }
+
+    .rules-box .seq-label {
+      color: #e8c840;
+      font-weight: bold;
+    }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      .card {
+        width: 56px;
+        height: 78px;
+      }
+      .card-rank { font-size: 17px; }
+      .card-suit { font-size: 10px; bottom: 4px; }
+      .card-back::after { width: 40px; height: 60px; }
+      .foundations, .wastes { gap: 6px; }
+      .stock-area { gap: 12px; }
+      .waste-stacked { margin-top: -56px; }
+      header h1 { font-size: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>カルキュレーション</h1>
+  <a href="index.html">トップへ戻る</a>
+</header>
+
+<div class="game-container">
+  <div class="info-bar">
+    <span id="move-count">手数: 0</span>
+    <button onclick="newGame()">新しいゲーム</button>
+  </div>
+
+  <div class="message" id="message"></div>
+
+  <div class="rules-toggle">
+    <button onclick="toggleRules()">ルールを表示</button>
+  </div>
+
+  <div class="rules-box" id="rules-box">
+    <h3>カルキュレーションのルール</h3>
+    <ul>
+      <li>52枚のカードを使う一人遊びです（スートは関係ありません）</li>
+      <li>A, 2, 3, 4 を1枚ずつ取り出し、4つの<b>台札（ファンデーション）</b>に置きます</li>
+      <li>各台札には、開始カードの数値ずつ足した順番でカードを重ねていきます（13を超えたら13を引く）</li>
+      <li>山札から1枚ずつカードをめくり、台札に置けなければ4つの<b>捨て札置き場</b>のどれかに置きます</li>
+      <li>捨て札の一番上のカードは台札に移動できます</li>
+      <li>すべての台札が K で終われば<b>クリア</b>です</li>
+    </ul>
+    <div class="seq-table">
+      <span class="seq-label">A (+1):</span><span>A→2→3→4→5→6→7→8→9→10→J→Q→K</span>
+      <span class="seq-label">2 (+2):</span><span>2→4→6→8→10→Q→A→3→5→7→9→J→K</span>
+      <span class="seq-label">3 (+3):</span><span>3→6→9→Q→2→5→8→J→A→4→7→10→K</span>
+      <span class="seq-label">4 (+4):</span><span>4→8→Q→3→7→J→2→6→10→A→5→9→K</span>
+    </div>
+  </div>
+
+  <!-- Foundations -->
+  <div class="foundations-area">
+    <div class="section-label">台札（ファンデーション）</div>
+    <div class="foundations" id="foundations"></div>
+  </div>
+
+  <!-- Stock and drawn card -->
+  <div class="stock-area">
+    <div class="stock-section">
+      <div class="section-label">山札</div>
+      <div id="stock"></div>
+      <div class="stock-count" id="stock-count"></div>
+    </div>
+    <div class="drawn-section">
+      <div class="section-label">めくったカード</div>
+      <div class="drawn-card" id="drawn-card"></div>
+    </div>
+  </div>
+
+  <!-- Waste piles -->
+  <div class="waste-area">
+    <div class="section-label">捨て札置き場</div>
+    <div class="wastes" id="wastes"></div>
+  </div>
+</div>
+
+<!-- Win overlay -->
+<div class="overlay" id="win-overlay">
+  <div class="overlay-content">
+    <h2>クリア!</h2>
+    <p id="win-message"></p>
+    <button onclick="newGame()">もう一度遊ぶ</button>
+  </div>
+</div>
+
+<!-- Game Over overlay -->
+<div class="overlay" id="lose-overlay">
+  <div class="overlay-content">
+    <h2>ゲームオーバー</h2>
+    <p id="lose-message"></p>
+    <button onclick="newGame()">もう一度遊ぶ</button>
+  </div>
+</div>
+
+<script>
+const SUITS = ['♠','♥','♦','♣'];
+const SUIT_COLORS = {'♠':'black','♣':'black','♥':'red','♦':'red'};
+const RANK_NAMES = ['','A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+
+// Foundation sequences: each foundation builds by its interval
+function buildSequence(start, step) {
+  const seq = [start];
+  let v = start;
+  for (let i = 1; i < 13; i++) {
+    v = ((v - 1 + step) % 13) + 1;
+    seq.push(v);
+  }
+  return seq;
+}
+
+const FOUNDATION_SEQUENCES = [
+  buildSequence(1, 1),  // A: +1
+  buildSequence(2, 2),  // 2: +2
+  buildSequence(3, 3),  // 3: +3
+  buildSequence(4, 4),  // 4: +4
+];
+
+let stock = [];
+let drawnCard = null;
+let foundations = [[], [], [], []];
+let wastePiles = [[], [], [], []];
+let moveCount = 0;
+let selectedSource = null; // {type: 'drawn'} or {type: 'waste', index: n}
+let gameOver = false;
+
+function createDeck() {
+  const deck = [];
+  for (let suit of SUITS) {
+    for (let rank = 1; rank <= 13; rank++) {
+      deck.push({ rank, suit });
+    }
+  }
+  return deck;
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function newGame() {
+  document.getElementById('win-overlay').classList.remove('show');
+  document.getElementById('lose-overlay').classList.remove('show');
+
+  const deck = shuffle(createDeck());
+
+  // Pull out one A, one 2, one 3, one 4 for foundations
+  foundations = [[], [], [], []];
+  const startRanks = [1, 2, 3, 4];
+  const remaining = [];
+  const foundStarts = [false, false, false, false];
+
+  for (const card of deck) {
+    let placed = false;
+    for (let i = 0; i < 4; i++) {
+      if (!foundStarts[i] && card.rank === startRanks[i]) {
+        foundations[i].push(card);
+        foundStarts[i] = true;
+        placed = true;
+        break;
+      }
+    }
+    if (!placed) remaining.push(card);
+  }
+
+  stock = remaining;
+  drawnCard = null;
+  wastePiles = [[], [], [], []];
+  moveCount = 0;
+  selectedSource = null;
+  gameOver = false;
+
+  render();
+}
+
+function getNextExpected(foundationIndex) {
+  const seq = FOUNDATION_SEQUENCES[foundationIndex];
+  const count = foundations[foundationIndex].length;
+  if (count >= 13) return null;
+  return seq[count];
+}
+
+function canPlaceOnFoundation(card, foundationIndex) {
+  const expected = getNextExpected(foundationIndex);
+  if (expected === null) return false;
+  return card.rank === expected;
+}
+
+function renderCard(card, extraClass = '') {
+  const color = SUIT_COLORS[card.suit];
+  return `<div class="card card-face ${color} ${extraClass}">
+    <span class="card-rank">${RANK_NAMES[card.rank]}</span>
+    <span class="card-suit">${card.suit}</span>
+  </div>`;
+}
+
+function renderCardBack(count) {
+  if (count === 0) {
+    return `<div class="card card-placeholder"></div>`;
+  }
+  return `<div class="card card-back" onclick="drawCard()"></div>`;
+}
+
+function renderPlaceholder() {
+  return `<div class="card card-placeholder"></div>`;
+}
+
+function render() {
+  renderFoundations();
+  renderStock();
+  renderDrawnCard();
+  renderWastes();
+  document.getElementById('move-count').textContent = `手数: ${moveCount}`;
+}
+
+function renderFoundations() {
+  const el = document.getElementById('foundations');
+  let html = '';
+  for (let i = 0; i < 4; i++) {
+    const f = foundations[i];
+    const topCard = f[f.length - 1];
+    const nextExpected = getNextExpected(i);
+    const isComplete = f.length >= 13;
+    const seq = FOUNDATION_SEQUENCES[i];
+    const seqStr = seq.map(r => RANK_NAMES[r]).join('→');
+
+    let highlight = '';
+    if (!isComplete && selectedSource) {
+      const srcCard = getSelectedCard();
+      if (srcCard && canPlaceOnFoundation(srcCard, i)) {
+        highlight = 'highlight';
+      }
+    }
+
+    html += `<div class="foundation">`;
+    if (topCard) {
+      html += `<div onclick="clickFoundation(${i})">${renderCard(topCard, highlight)}</div>`;
+    } else {
+      html += renderPlaceholder();
+    }
+    if (nextExpected) {
+      html += `<div class="foundation-next">次: ${RANK_NAMES[nextExpected]}</div>`;
+    } else {
+      html += `<div class="foundation-next">完成!</div>`;
+    }
+    html += `<div class="foundation-count">${f.length}/13</div>`;
+    html += `</div>`;
+  }
+  el.innerHTML = html;
+}
+
+function renderStock() {
+  const el = document.getElementById('stock');
+  el.innerHTML = renderCardBack(stock.length);
+  document.getElementById('stock-count').textContent = `残り ${stock.length} 枚`;
+}
+
+function renderDrawnCard() {
+  const el = document.getElementById('drawn-card');
+  if (drawnCard) {
+    const isSelected = selectedSource && selectedSource.type === 'drawn';
+    const cls = isSelected ? 'selected' : '';
+    el.innerHTML = `<div onclick="clickDrawn()">${renderCard(drawnCard, cls)}</div>`;
+  } else {
+    el.innerHTML = renderPlaceholder();
+  }
+}
+
+function renderWastes() {
+  const el = document.getElementById('wastes');
+  let html = '';
+  for (let i = 0; i < 4; i++) {
+    const pile = wastePiles[i];
+    html += `<div class="waste-pile">`;
+
+    if (pile.length === 0) {
+      const canPlace = drawnCard && selectedSource && selectedSource.type === 'drawn';
+      const highlight = canPlace ? 'highlight' : '';
+      html += `<div onclick="clickWaste(${i})"><div class="card card-placeholder ${highlight}"></div></div>`;
+    } else {
+      // Show up to last 4 cards stacked
+      const showCount = Math.min(pile.length, 4);
+      const startIdx = pile.length - showCount;
+      html += `<div class="waste-cards" onclick="clickWaste(${i})">`;
+      for (let j = startIdx; j < pile.length; j++) {
+        const isTop = j === pile.length - 1;
+        const isSelected = isTop && selectedSource && selectedSource.type === 'waste' && selectedSource.index === i;
+        const cls = (isSelected ? 'selected' : '') + ' waste-stacked';
+        html += renderCard(pile[j], cls);
+      }
+      html += `</div>`;
+    }
+
+    html += `<div class="waste-count">${pile.length} 枚</div>`;
+    html += `</div>`;
+  }
+  el.innerHTML = html;
+}
+
+function getSelectedCard() {
+  if (!selectedSource) return null;
+  if (selectedSource.type === 'drawn') return drawnCard;
+  if (selectedSource.type === 'waste') {
+    const pile = wastePiles[selectedSource.index];
+    return pile.length > 0 ? pile[pile.length - 1] : null;
+  }
+  return null;
+}
+
+function drawCard() {
+  if (gameOver) return;
+  if (stock.length === 0) return;
+
+  if (drawnCard) {
+    setMessage('先にめくったカードを置いてください');
+    return;
+  }
+
+  drawnCard = stock.pop();
+  selectedSource = { type: 'drawn' };
+  setMessage('');
+
+  // Auto-check if it can go on a foundation
+  let autoPlaced = false;
+  for (let i = 0; i < 4; i++) {
+    if (canPlaceOnFoundation(drawnCard, i)) {
+      // Don't auto place, let user decide
+      break;
+    }
+  }
+
+  render();
+}
+
+function clickDrawn() {
+  if (gameOver) return;
+  if (!drawnCard) return;
+
+  if (selectedSource && selectedSource.type === 'drawn') {
+    // Deselect
+    selectedSource = null;
+  } else {
+    selectedSource = { type: 'drawn' };
+  }
+  render();
+}
+
+function clickFoundation(index) {
+  if (gameOver) return;
+  if (!selectedSource) {
+    setMessage('カードを選択してからタップしてください');
+    return;
+  }
+
+  const card = getSelectedCard();
+  if (!card) return;
+
+  if (canPlaceOnFoundation(card, index)) {
+    // Place card on foundation
+    foundations[index].push(card);
+    removeSelectedCard();
+    moveCount++;
+    selectedSource = null;
+    setMessage('');
+
+    if (checkWin()) {
+      gameOver = true;
+      showWin();
+    }
+
+    render();
+  } else {
+    const expected = getNextExpected(index);
+    if (expected) {
+      setMessage(`この台札には ${RANK_NAMES[expected]} が必要です`);
+    }
+  }
+}
+
+function clickWaste(index) {
+  if (gameOver) return;
+
+  if (selectedSource) {
+    if (selectedSource.type === 'drawn') {
+      // Place drawn card on waste pile
+      wastePiles[index].push(drawnCard);
+      drawnCard = null;
+      selectedSource = null;
+      moveCount++;
+      setMessage('');
+      render();
+      checkGameOver();
+      return;
+    }
+
+    if (selectedSource.type === 'waste' && selectedSource.index === index) {
+      // Deselect
+      selectedSource = null;
+      render();
+      return;
+    }
+  }
+
+  // Select top of waste pile
+  if (wastePiles[index].length > 0) {
+    selectedSource = { type: 'waste', index };
+    render();
+  } else if (!selectedSource) {
+    setMessage('この場所は空です');
+  }
+}
+
+function removeSelectedCard() {
+  if (selectedSource.type === 'drawn') {
+    drawnCard = null;
+  } else if (selectedSource.type === 'waste') {
+    wastePiles[selectedSource.index].pop();
+  }
+}
+
+function checkWin() {
+  return foundations.every(f => f.length === 13);
+}
+
+function showWin() {
+  document.getElementById('win-message').textContent = `${moveCount} 手でクリアしました！`;
+  document.getElementById('win-overlay').classList.add('show');
+}
+
+function checkGameOver() {
+  if (stock.length > 0 || drawnCard) return;
+
+  // Check if any waste pile top card can go on any foundation
+  for (let i = 0; i < 4; i++) {
+    const pile = wastePiles[i];
+    if (pile.length === 0) continue;
+    const top = pile[pile.length - 1];
+    for (let j = 0; j < 4; j++) {
+      if (canPlaceOnFoundation(top, j)) return; // Still playable
+    }
+  }
+
+  // No moves left
+  gameOver = true;
+  const totalPlaced = foundations.reduce((s, f) => s + f.length, 0);
+  document.getElementById('lose-message').textContent =
+    `台札に ${totalPlaced}/52 枚置けました（${moveCount} 手）`;
+  document.getElementById('lose-overlay').classList.add('show');
+}
+
+function setMessage(msg) {
+  document.getElementById('message').textContent = msg;
+}
+
+function toggleRules() {
+  const box = document.getElementById('rules-box');
+  box.classList.toggle('show');
+}
+
+// Start game
+newGame();
+</script>
+
+</body>
+</html>
